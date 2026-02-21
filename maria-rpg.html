@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Maria & The Robot Garden - v4.1 Economy</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
+body { background: #0a0a0a; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Courier New', monospace; overflow: hidden; }
+#game-container { position: relative; width: 800px; height: 600px; max-width: 100vw; max-height: 100vh; }
+canvas { display: block; }
+.touch-controls { position: fixed; bottom: 20px; left: 0; right: 0; display: none; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 100; }
+.touch-controls.visible { display: flex; }
+.dpad { display: grid; grid-template-columns: repeat(3, 60px); gap: 5px; pointer-events: auto; }
+.action-btns { display: grid; grid-template-columns: repeat(2, 70px); gap: 10px; pointer-events: auto; }
+.touch-btn { width: 60px; height: 60px; background: rgba(255,215,0,0.3); border: 3px solid #FFD700; border-radius: 15px; font-size: 24px; display: flex; align-items: center; justify-content: center; color: #FFD700; user-select: none; -webkit-user-select: none; }
+.touch-btn:active { background: rgba(255,215,0,0.6); transform: scale(0.95); }
+.action-btn { width: 70px; height: 70px; border-radius: 50%; font-size: 20px; }
+.btn-attack { background: rgba(255,0,0,0.4); }
+.btn-jump { background: rgba(0,255,0,0.4); }
+.btn-block { background: rgba(0,100,255,0.4); }
+@media (max-width: 768px) { .touch-controls { display: flex; } #game-container { width: 100vw; height: 100vh; border: none; } }
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<div class="touch-controls" id="touchControls">
+<div class="dpad">
+<div></div>
+<div class="touch-btn" id="btnUp">UP</div>
+<div></div>
+<div class="touch-btn" id="btnLeft">L</div>
+<div class="touch-btn" id="btnDown">DN</div>
+<div class="touch-btn" id="btnRight">R</div>
+</div>
+<div class="action-btns">
+<div class="touch-btn action-btn btn-attack" id="btnAttack">ATK</div>
+<div class="touch-btn action-btn btn-jump" id="btnJump">JMP</div>
+<div class="touch-btn action-btn btn-block" id="btnBlock">BLK</div>
+<div class="touch-btn action-btn" id="btnShop" style="background:rgba(255,215,0,0.4);" onclick="window.shopOpen=!window.shopOpen">SHOP</div>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<script>
+// ============================================
+// MARIA & THE ROBOT GARDEN - v4.2 PRO PIXEL
+// ============================================
+
+// COLORS - Paleta coherente profesional
+const C = {
+    bg: 0x1a1a2e,
+    bgDark: 0x0f0f1a,
+    grass: 0x27ae60,
+    grassDark: 0x1e8449,
+    path: 0x8b7355,
+    player: { body: 0xe84393, hair: 0x8b4513, skin: 0xf5d0c5 },
+    enemy: { slime: 0x00b894, bat: 0x6c5ce7, skeleton: 0xf5f5f5 },
+    ui: { gold: 0xf1c40f, goldDark: 0xd4ac0d, red: 0xe74c3c, green: 0x2ecc71, blue: 0x3498db, purple: 0x9b59b6 },
+    tile: { wall: 0x5d4e37, floor: 0x636e72 }
+};
+
+// ============================================
+// SPRITE FACTORY - PRO PIXEL ART (No emojis)
+// ============================================
+class PixelFactory {
+    // Professional pixel player with coherent style
+    static createPlayer(scene, x, y) {
+        const container = scene.add.container(x, y);
+        
+        // Shadow
+        const shadow = scene.add.ellipse(0, 20, 20, 8, 0x000000, 0.3);
+        
+        // Dress
+        const dress = scene.add.rectangle(0, 6, 20, 18, C.player.body);
+        dress.setStrokeStyle(1, 0xc44569);
+        
+        // Head
+        const head = scene.add.rectangle(0, -10, 14, 14, C.player.skin);
+        
+        // Hair
+        const hairBack = scene.add.rectangle(0, -14, 18, 8, C.player.hair);
+        const hairL = scene.add.rectangle(-8, -8, 4, 12, C.player.hair);
+        const hairR = scene.add.rectangle(8, -8, 4, 10, C.player.hair);
+        
+        // Eyes
+        const eyeL = scene.add.rectangle(-3, -10, 2, 3, 0x2d3436);
+        const eyeR = scene.add.rectangle(3, -10, 2, 3, 0x2d3436);
+        
+        // Mouth
+        const mouth = scene.add.rectangle(0, -5, 2, 1, 0xe17055);
+        
+        // Legs & Shoes
+        const legL = scene.add.rectangle(-4, 22, 3, 4, C.player.skin);
+        const legR = scene.add.rectangle(4, 22, 3, 4, C.player.skin);
+        const shoeL = scene.add.rectangle(-5, 24, 5, 2, 0x2d3436);
+        const shoeR = scene.add.rectangle(5, 24, 5, 2, 0x2d3436);
+        
+        container.add([shadow, dress, hairBack, head, hairL, hairR, eyeL, eyeR, mouth, legL, legR, shoeL, shoeR]);
+        return container;
+    }
+    
+    // Enemy types: warrior, slime, bat, skeleton
+    static createEnemy(scene, x, y, type = 'warrior') {
+        const container = scene.add.container(x, y);
+        
+        if (type === 'slime') {
+            const shadow = scene.add.ellipse(0, 14, 24, 8, 0x000000, 0.3);
+            const body = scene.add.ellipse(0, 4, 28, 20, C.enemy.slime);
+            const highlight = scene.add.ellipse(-5, 0, 8, 6, 0x55efc4);
+            const eyeL = scene.add.rectangle(-5, 4, 4, 5, 0xffffff);
+            const eyeR = scene.add.rectangle(5, 4, 4, 5, 0xffffff);
+            const pupilL = scene.add.rectangle(-4, 5, 2, 2, 0x2d3436);
+            const pupilR = scene.add.rectangle(6, 5, 2, 2, 0x2d3436);
+            container.add([shadow, body, highlight, eyeL, eyeR, pupilL, pupilR]);
+        } else if (type === 'bat') {
+            const body = scene.add.ellipse(0, 0, 10, 14, C.enemy.bat);
+            const wingL = scene.add.triangle(-12, -2, 0, -10, -18, 6, -8, 2, C.enemy.bat);
+            const wingR = scene.add.triangle(12, -2, 0, -10, 18, 6, 8, 2, C.enemy.bat);
+            const eyeL = scene.add.rectangle(-3, -2, 2, 2, 0xff7675);
+            const eyeR = scene.add.rectangle(3, -2, 2, 2, 0xff7675);
+            container.add([wingL, wingR, body, eyeL, eyeR]);
+        } else if (type === 'skeleton') {
+            const shadow = scene.add.ellipse(0, 16, 16, 6, 0x000000, 0.3);
+            const skull = scene.add.rectangle(0, -8, 16, 14, 0xf5f5f5);
+            const eyeL = scene.add.rectangle(-4, -6, 4, 4, 0x2d3436);
+            const eyeR = scene.add.rectangle(4, -6, 4, 4, 0x2d3436);
+            const glowL = scene.add.rectangle(-4, -5, 1, 1, 0xff0000);
+            const glowR = scene.add.rectangle(4, -5, 1, 1, 0xff0000);
+            const teeth = scene.add.rectangle(0, 4, 8, 4, 0xf5f5f5);
+            const ribs = scene.add.rectangle(0, 10, 12, 8, 0xdfe6e9);
+            container.add([shadow, skull, eyeL, eyeR, glowL, glowR, teeth, ribs]);
+        } else {
+            // Warrior
+            const shadow = scene.add.ellipse(0, 20, 24, 8, 0x000000, 0.3);
+            const body = scene.add.rectangle(0, 6, 24, 28, 0x8b0000);
+            body.setStrokeStyle(2, 0xff0000);
+            const head = scene.add.circle(0, -10, 12, 0x2a2a2a);
+            const eyeL = scene.add.circle(-4, -10, 3, 0xff0000);
+            const eyeR = scene.add.circle(4, -10, 3, 0xff0000);
+            const hornL = scene.add.triangle(-10, -20, 0, 12, -14, 8, -6, 8, 0x8b0000);
+            const hornR = scene.add.triangle(10, -20, 0, 12, 14, 8, 6, 8, 0x8b0000);
+            container.add([shadow, body, head, eyeL, eyeR, hornL, hornR]);
+        }
+        return container;
+    }
+    
+    static createTree(scene, x, y) {
+        const container = scene.add.container(x, y);
+        const shadow = scene.add.ellipse(0, 32, 40, 12, 0x000000, 0.3);
+        const trunk = scene.add.rectangle(0, 16, 16, 28, 0x8b4513);
+        const trunkDark = scene.add.rectangle(-3, 18, 6, 20, 0x5d3a1a);
+        const f1 = scene.add.circle(0, -10, 30, 0x145a32);
+        const f2 = scene.add.circle(-12, -2, 20, 0x1e8449);
+        const f3 = scene.add.circle(12, -2, 20, 0x1e8449);
+        const f4 = scene.add.circle(0, -14, 18, 0x27ae60);
+        container.add([shadow, trunk, trunkDark, f1, f2, f3, f4]);
+        return container;
+    }
+    
+    static createFlower(scene, x, y) {
+        const colors = [0xe74c3c, 0xf39c12, 0x9b59b6, 0x3498db];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const container = scene.add.container(x, y);
+        const stem = scene.add.rectangle(0, 6, 2, 14, 0x27ae60);
+        for (let i = 0; i < 5; i++) {
+            const angle = (i / 5) * Math.PI * 2;
+            const px = Math.cos(angle) * 5;
+            const py = Math.sin(angle) * 5 - 6;
+            container.add(scene.add.circle(px, py, 4, color));
+        }
+        const center = scene.add.circle(0, -6, 3, 0xf1c40f);
+        container.add(stem, center);
+        return container;
+    }
+    
+    static createGrass(scene, x, y) {
+        const shades = [0x27ae60, 0x1e8449, 0x145a32];
+        const shade = shades[Math.floor(Math.random() * shades.length)];
+        return scene.add.rectangle(x, y, 8, 8, shade);
+    }
+    
+    static createTile(scene, x, y, type) {
+        const colors = { grass: C.grass, path: C.path, wall: C.tile.wall };
+        return scene.add.rectangle(x, y, 32, 32, colors[type] || C.grass).setStrokeStyle(1, 0x000000, 0.2);
+    }
+    
+    static createBuilding(scene, x, y, type) {
+        const container = scene.add.container(x, y);
+        
+        if (type === 'house') {
+            const base = scene.add.rectangle(0, 10, 60, 50, 0x8b7355);
+            base.setStrokeStyle(2, 0x5d4e37);
+            const roof = scene.add.triangle(0, -25, -35, 10, 0, -35, 35, 10, 0xc0392b);
+            const door = scene.add.rectangle(0, 30, 14, 24, 0x5d3a1a);
+            const knob = scene.add.circle(5, 38, 2, 0xf1c40f);
+            const windowL = scene.add.rectangle(-15, 10, 12, 12, 0x87ceeb);
+            const windowR = scene.add.rectangle(15, 10, 12, 12, 0x87ceeb);
+            container.add([base, roof, door, knob, windowL, windowR]);
+        } else if (type === 'church') {
+            const base = scene.add.rectangle(0, 20, 50, 60, 0xf5f5f5);
+            base.setStrokeStyle(2, 0xbdc3c7);
+            const roof = scene.add.triangle(0, -20, -30, 0, 0, -30, 30, 0, 0x2c3e50);
+            const door = scene.add.rectangle(0, 40, 16, 28, 0x5d3a1a);
+            const cross = scene.add.rectangle(0, -30, 3, 12, 0xf1c40f);
+            const win = scene.add.rectangle(0, 0, 14, 20, 0x87ceeb);
+            win.setStrokeStyle(2, 0x2c3e50);
+            container.add([base, roof, door, cross, win]);
+        } else if (type === 'ranch') {
+            const base = scene.add.rectangle(0, 15, 70, 50, 0xc0392b);
+            const roof = scene.add.triangle(0, -15, -40, 10, 0, -25, 40, 10, 0x922b21);
+            const door = scene.add.rectangle(0, 35, 20, 20, 0x5d3a1a);
+            const w1 = scene.add.rectangle(-20, 10, 10, 10, 0x87ceeb);
+            const w2 = scene.add.rectangle(20, 10, 10, 10, 0x87ceeb);
+            container.add([base, roof, door, w1, w2]);
+        } else {
+            // Robot
+            const base = scene.add.rectangle(0, 10, 50, 50, 0x636e72);
+            base.setStrokeStyle(2, 0x2d3436);
+            const antenna = scene.add.rectangle(0, -25, 2, 15, 0xbdc3c7);
+            const dish = scene.add.circle(0, -35, 8, 0xbdc3c7);
+            const win = scene.add.rectangle(0, 5, 30, 20, 0x3498db);
+            win.setStrokeStyle(2, 0x2ecc71);
+            container.add([base, antenna, dish, win]);
+        }
+        return container;
+    }
+    
+    // Coin - no emoji
+    static createCoin(scene, x, y) {
+        const container = scene.add.container(x, y);
+        const shadow = scene.add.ellipse(0, 6, 12, 4, 0x000000, 0.3);
+        const coin = scene.add.circle(0, 0, 8, C.ui.gold);
+        const inner = scene.add.circle(0, 0, 5, C.ui.goldDark);
+        const shine = scene.add.circle(-2, -2, 2, 0xffeaa7);
+        container.add([shadow, coin, inner, shine]);
+        return container;
+    }
+    
+    // Heart - no emoji
+    static createHeart(scene, x, y) {
+        return scene.add.polygon(x, y, [0,4,-8,-4,-8,-8,0,-2,8,-8,8,-4], C.ui.red)
+            .setStrokeStyle(1, 0xc0392b);
+    }
+    
+    // Potion - no emoji
+    static createPotion(scene, x, y) {
+        const container = scene.add.container(x, y);
+        const bottle = scene.add.circle(0, 2, 8, C.ui.blue);
+        const neck = scene.add.rectangle(0, -6, 6, 8, C.ui.blue);
+        const cork = scene.add.rectangle(0, -10, 6, 3, 0x8b4513);
+        const shine = scene.add.circle(-3, 0, 2, 0x74b9ff);
+        container.add([bottle, neck, cork, shine]);
+        return container;
+    }
+}
+            wall.setStrokeStyle(3, 0x8b4513);
+            // Door
+            const door = scene.add.rectangle(0, 35, 20, 30, 0x4a3728);
+            // Window
+            const window = scene.add.rectangle(-20, 15, 15, 15, 0x87ceeb).setStrokeStyle(2, 0x4a3728);
+            container.add([roof, wall, door, window]);
+        }
+        
+        if (type === 'church') {
+            // Tower
+            const tower = scene.add.rectangle(-20, -20, 30, 80, 0x696969);
+            const cross = scene.add.rectangle(-20, -50, 6, 20, 0xffd700);
+            const body = scene.add.rectangle(30, 30, 80, 60, 0xa0a0a0);
+            container.add([tower, cross, body]);
+        }
+        
+        if (type === 'ranch') {
+            const roof = scene.add.triangle(0, -25, -60, 0, 60, 0, 0, 0x8b4513);
+            const walls = scene.add.rectangle(0, 20, 100, 50, 0xdeb887);
+            const fence = scene.add.rectangle(0, 45, 100, 10, 0x8b4513);
+            container.add([roof, walls, fence]);
+        }
+        
+        if (type === 'robot') {
+            const body = scene.add.rectangle(0, 10, 50, 50, 0x4a4a4a);
+            body.setStrokeStyle(2, 0x6a6a6a);
+            const eye = scene.add.circle(0, 0, 10, 0x00ff00);
+            const antenna = scene.add.rectangle(20, -30, 4, 20, 0x888888);
+            container.add([body, eye, antenna]);
+        }
+        
+        return container;
+    }
+    
+    static createCat(scene, x, y, color) {
+        const container = scene.add.container(x, y);
+        
+        const body = scene.add.ellipse(0, 5, 30, 20, color);
+        const head = scene.add.circle(0, -10, 15, color);
+        const earL = scene.add.triangle(-10, -20, 0, 8, -6, 8, -6, -6, color);
+        const earR = scene.add.triangle(10, -20, 0, 8, 6, 8, 6, 6, color);
+        const eye = scene.add.circle(0, -10, 4, 0x000000);
+        const nose = scene.add.circle(0, -5, 3, 0xff69b4);
+        
+        container.add([body, head, earL, earR, eye, nose]);
+        return container;
+    }
+}
+
+// ============================================
+// GAME DATA
+// ============================================
+const GAME = {
+    upgrades: { damage: {level:0,max:5,cost:100}, speed: {level:0,max:5,cost:150}, health: {level:0,max:5,cost:200}, regen: {level:0,max:3,cost:300} },
+    tickets: 0,
+    coins: 0,
+    potions: 0
+};
+
+// ============================================
+// SCENES
+// ============================================
+
+class BootScene extends Phaser.Scene {
+    constructor() { super({key:'Boot'}); }
+    create() {
+        const save = localStorage.getItem('mariaRPG_v4');
+        if(save) Object.assign(GAME, JSON.parse(save));
+        this.scene.start('Menu');
+    }
+}
+
+class MenuScene extends Phaser.Scene {
+    create() {
+        // Stars
+        for(let i=0; i<50; i++) {
+            const star = this.add.circle(Phaser.Math.Between(0,800), Phaser.Math.Between(0,600), Phaser.Math.Between(1,3), 0xffffff);
+            this.tweens.add({targets:star, alpha:0.3, duration:Phaser.Math.Between(500,2000), yoyo:true, repeat:-1});
+        }
+        
+        // Title
+        const title = this.add.text(400, 120, 'MARIA & THE\nROBOT GARDEN', {
+            fontSize:'28px', color:'#ff69b4', align:'center', fontFamily:'Courier New', stroke:'#000', strokeThickness:4
+        }).setOrigin(0.5);
+        
+        // Menu
+        const opts = ['JUGAR', 'ARCADE', 'UPGRADES', 'IGLESIA', 'RANCH'];
+        const scenes = ['Overworld', 'Arcade', 'Upgrades', 'Church', 'Ranch'];
+        let y = 250;
+        opts.forEach((opt, i) => {
+            const btn = this.add.text(400, y, opt, {
+                fontSize:'20px', color:'#ffd700', fontFamily:'Courier New'
+            }).setOrigin(0.5).setInteractive({useHandCursor:true});
+            btn.on('pointerover', () => btn.setScale(1.1));
+            btn.on('pointerout', () => btn.setScale(1));
+            btn.on('pointerdown', () => this.scene.start(scenes[i]));
+            y += 55;
+        });
+        
+        this.add.text(400, 550, `Tickets: ${GAME.tickets}`, {color:'#ffd700', fontSize:'14px'}).setOrigin(0.5);
+    }
+}
+
+class OverworldScene extends Phaser.Scene {
+    create() {
+        this.player = {x:400, y:300, speed:4, body:null};
+        
+        // Background
+        this.add.rectangle(400, 300, 800, 600, 0x87ceeb);
+        this.add.rectangle(400, 450, 800, 300, C.grass);
+        
+        // Grid de grass
+        for(let x=50; x<750; x+=32) {
+            for(let y=300; y<580; y+=32) {
+                this.add.rectangle(x, y, 30, 30, C.grass).setAlpha(0.5);
+            }
+        }
+        
+        // Trees
+        for(let i=0; i<15; i++) {
+            PixelFactory.createTree(this, Phaser.Math.Between(50,750), Phaser.Math.Between(200,400));
+        }
+        
+        // Flowers
+        for(let i=0; i<20; i++) {
+            PixelFactory.createFlower(this, Phaser.Math.Between(50,750), Phaser.Math.Between(350,550));
+        }
+        
+        // Buildings
+        PixelFactory.createBuilding(this, 120, 150, 'house');
+        PixelFactory.createBuilding(this, 680, 150, 'church');
+        PixelFactory.createBuilding(this, 680, 450, 'ranch');
+        PixelFactory.createBuilding(this, 120, 420, 'robot');
+        PixelFactory.createBuilding(this, 400, 200, 'robot');
+        
+        // Player
+        this.player.body = PixelFactory.createPlayer(this, 400, 320);
+        
+        // Jose
+        this.add.text(350, 280, '[P]', {fontSize:'30px'}).setInteractive({useHandCursor:true})
+            .on('pointerdown', () => this.showDialog('Jose', 'Hola Maria! !'));
+        
+        // HUD
+        this.add.rectangle(400, 30, 800, 50, 0x000000, 0.7);
+        this.add.text(20, 20, 'MAPA', {color:'#ffd700', fontSize:'14px'});
+        
+        // Controls
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.setupTouch();
+        
+        this.add.text(700, 20, '[ESC] Menu', {color:'#666', fontSize:'12px'}).setInteractive({useHandCursor:true})
+            .on('pointerdown', () => this.scene.start('Menu'));
+    }
+    
+    setupTouch() {
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if(!isMobile) return;
+        document.getElementById('touchControls').classList.add('visible');
+        
+        const setup = (id, key) => {
+            const btn = document.getElementById(id);
+            if(btn) {
+                btn.ontouchstart = () => this.touch[key] = true;
+                btn.ontouchend = () => this.touch[key] = false;
+            }
+        };
+        setup('btnUp', 'up'); setup('btnDown', 'down');
+        setup('btnLeft', 'left'); setup('btnRight', 'right');
+    }
+    
+    showDialog(name, text) {
+        const box = this.add.rectangle(400, 520, 600, 100, 0x5d4e37, 0.95).setStrokeStyle(4, 0xffd700);
+        this.add.text(420, 480, name, {color:'#ffd700', fontSize:'18px'});
+        this.add.text(420, 500, text, {color:'#fff', fontSize:'18px', wordWrap:{width:560}});
+        this.input.once('pointerdown', () => box.destroy());
+    }
+    
+    update() {
+        let dx=0, dy=0;
+        if(this.cursors?.left?.isDown || this.touch?.left) dx=-1;
+        if(this.cursors?.right?.isDown || this.touch?.right) dx=1;
+        if(this.cursors?.up?.isDown || this.touch?.up) dy=-1;
+        if(this.cursors?.down?.isDown || this.touch?.down) dy=1;
+        
+        if(dx||dy) {
+            this.player.x = Phaser.Math.Clamp(this.player.x + dx*this.player.speed, 30, 770);
+            this.player.y = Phaser.Math.Clamp(this.player.y + dy*this.player.speed, 100, 570);
+            this.player.body.setPosition(this.player.x, this.player.y);
+        }
+    }
+}
+
+class ArcadeScene extends Phaser.Scene {
+    create() {
+        this.state = {playerHP:100, enemyHP:100, combo:0, gameOver:false, blocking:false, attackCooldown:0};
+        this.player = {x:200, y:450, body:null};
+        this.enemy = {x:600, y:450, body:null};
+        
+        this.add.rectangle(400,300,800,600, C.bg);
+        this.add.rectangle(400,520,700,10, 0x444444);
+        
+        this.player.body = PixelFactory.createPlayer(this, 200, 450);
+        this.enemy.body = PixelFactory.createEnemy(this, 600, 450);
+        
+        // HP Bars
+        this.hpPlayer = this.add.rectangle(50,40, 200, 16, 0x333).setStrokeStyle(2, 0xffd700);
+        this.hpPlayerFill = this.add.rectangle(48, 40, 196, 12, 0x00ff00);
+        this.add.text(50,60, 'MARIA', {color:'#ffd700', fontSize:'12px'});
+        
+        this.hpEnemy = this.add.rectangle(550,40, 200, 16, 0x333).setStrokeStyle(2, 0xffd700);
+        this.hpEnemyFill = this.add.rectangle(548, 40, 196, 12, 0xff0000);
+        this.add.text(550,60, 'ENEMIGO', {color:'#ff0000', fontSize:'12px'});
+        
+        this.comboText = this.add.text(400, 100, '', {color:'#ffd700', fontSize:'28px', stroke:'#000', strokeThickness:4}).setOrigin(0.5);
+        
+        this.add.text(400,30, 'ARCADE FIGHTING', {color:'#ffd700', fontSize:'22px'}).setOrigin(0.5);
+        
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.shopKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B);
+        this.coinsText = this.add.text(700, 20, `COIN ${GAME.coins}`, {color:'#ffd700', fontSize:'16px'});
+        this.potionsText = this.add.text(700, 40, `POT ${GAME.potions}`, {color:'#44ff44', fontSize:'14px'});
+        this.setupTouch();
+    }
+    
+    setupTouch() {
+        const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if(!isMobile) return;
+        document.getElementById('touchControls').classList.add('visible');
+        
+        ['Up','Down','Left','Right','Attack','Jump','Block'].forEach(id => {
+            const btn = document.getElementById('btn'+id);
+            if(btn) {
+                btn.ontouchstart = () => this.touch[id.toLowerCase()] = true;
+                btn.ontouchend = () => this.touch[id.toLowerCase()] = false;
+            }
+        });
+    }
+    
+    openShop() {
+        if(this.state.gameOver) return;
+        this.state.shopOpen = true;
+        
+        const bg = this.add.rectangle(400, 300, 500, 350, 0x000000, 0.95).setStrokeStyle(4, 0xffd700);
+        this.add.text(400, 150, '[SHOP] TIENDA', {color:'#ffd700', fontSize:'24px'}).setOrigin(0.5);
+        this.add.text(400, 190, `COIN Monedas: ${GAME.coins}`, {color:'#fff', fontSize:'16px'}).setOrigin(0.5);
+        
+        // Potion button
+        const btn = this.add.rectangle(400, 260, 300, 50, 0x44ff44, 0.3).setStrokeStyle(2, 0x44ff44).setInteractive({useHandCursor:true});
+        this.add.text(400, 260, 'POT Poción HP (+20) - 10 monedas', {color:'#fff', fontSize:'16px'}).setOrigin(0.5);
+        
+        btn.on('pointerdown', () => {
+            if(GAME.coins >= 10) {
+                GAME.coins -= 10;
+                GAME.potions++;
+                this.state.playerHP = Math.min(100, this.state.playerHP + 20);
+                this.hpPlayerFill.width = this.state.playerHP/100 * 196;
+                localStorage.setItem('mariaRPG_v4', JSON.stringify(GAME));
+                this.coinsText.setText(`COIN ${GAME.coins}`);
+                this.potionsText.setText(`POT ${GAME.potions}`);
+                this.events.emit('shopBought');
+            }
+        });
+        
+        this.add.text(400, 330, '[B] Cerrar', {color:'#888'}).setOrigin(0.5).setInteractive({useHandCursor:true})
+            .on('pointerdown', () => { this.state.shopOpen = false; bg.destroy(); });
+        
+        this.events.on('shopBought', () => {
+            this.add.text(400, 220, '✓ Comprado!', {color:'#44ff44', fontSize:'14px'}).setOrigin(0.5);
+        });
+    }
+    
+    attack() {
+        if(this.state.attackCooldown>0 || this.state.gameOver) return;
+        this.state.attackCooldown = 25;
+        
+        const dist = Math.abs(this.player.x - this.enemy.x);
+        if(dist < 80) {
+            const dmg = Phaser.Math.Between(12, 22);
+            this.state.enemyHP -= dmg;
+            this.state.combo++;
+            this.cameras.main.shake(100, 0.02);
+            this.createParticles(this.enemy.x, this.enemy.y-20);
+            
+            // HP bar
+            this.hpEnemyFill.width = Math.max(0, this.state.enemyHP/100 * 196);
+            this.tweens.add({targets: this.enemy.body, x: this.player.x + 30, duration:50, yoyo:true});
+            
+            if(this.state.enemyHP <= 0) this.win();
+        }
+        
+        // Player attack anim
+        this.tweens.add({targets:this.player.body, x: this.player.x + 25, duration:80, yoyo:true});
+    }
+    
+    createParticles(x, y) {
+        for(let i=0; i<8; i++) {
+            const p = this.add.rectangle(x + Phaser.Math.Between(-20,20), y + Phaser.Math.Between(-20,20), 8, 8, 0xffff00);
+            this.tweens.add({
+                targets:p, alpha:0, x: p.x + Phaser.Math.Between(-30,30), y: p.y - 40, duration:300,
+                onComplete: () => p.destroy()
+            });
+        }
+    }
+    
+    win() {
+        this.state.gameOver = true;
+        const tickets = 50 + this.state.combo * 5;
+        const coins = Phaser.Math.Between(5, 15) + Math.floor(this.state.combo / 2);
+        GAME.tickets += tickets;
+        GAME.coins += coins;
+        localStorage.setItem('mariaRPG_v4', JSON.stringify(GAME));
+        
+        const box = this.add.rectangle(400, 300, 350, 200, 0x000000, 0.9).setStrokeStyle(4, 0xffd700);
+        this.add.text(400, 220, 'GANASTE!', {color:'#ffd700', fontSize:'28px'}).setOrigin(0.5);
+        this.add.text(400, 270, `+${tickets} tickets`, {color:'#fff', fontSize:'18px'}).setOrigin(0.5);
+        this.add.text(400, 300, `+${coins} monedas`, {color:'#ffd700', fontSize:'16px'}).setOrigin(0.5);
+        this.add.text(400, 370, '[TOCA] Menu', {color:'#888'}).setOrigin(0.5).setInteractive({useHandCursor:true})
+            .on('pointerdown', () => this.scene.start('Menu'));
+    }
+    
+    update(time, delta) {
+        if(this.state.gameOver) return;
+        
+        // Combo timer
+        if(this.state.combo > 0) {
+            this.state.comboTimer = (this.state.comboTimer || 0) + delta;
+            if(this.state.comboTimer > 2500) { this.state.combo = 0; this.state.comboTimer = 0; }
+        }
+        
+        // UI
+        this.comboText.setText(this.state.combo > 1 ? `${this.state.combo} COMBO` : '');
+        
+        // Input
+        if(this.cursors?.left?.isDown || this.touch?.left) this.player.x = Math.max(50, this.player.x - 5);
+        if(this.cursors?.right?.isDown || this.touch?.right) this.player.x = Math.min(750, this.player.x + 5);
+        if(this.cursors?.space?.isDown || this.touch?.attack) this.attack();
+        
+        this.state.blocking = this.cursors?.down?.isDown || this.touch?.block;
+        this.player.body.setPosition(this.player.x, this.player.y);
+        
+        // Shop key
+        if(Phaser.Input.Keyboard.JustDown(this.shopKey)) {
+            if(this.state.shopOpen) {
+                this.state.shopOpen = false;
+                this.scene.restart();
+            } else {
+                this.openShop();
+            }
+        }
+        
+        // Enemy AI
+        if(Math.random() < 0.02) {
+            const action = Math.random();
+            if(action < 0.4) this.enemy.x = Phaser.Math.Between(400, 700);
+            else if(action < 0.7 && Math.abs(this.player.x - this.enemy.x) < 80 && !this.state.blocking) {
+                const dmg = Phaser.Math.Between(8, 15);
+                this.state.playerHP -= dmg;
+                this.hpPlayerFill.width = Math.max(0, this.state.playerHP/100 * 196);
+                this.cameras.main.shake(50, 0.01);
+                if(this.state.playerHP <= 0) this.scene.start('Menu');
+            }
+        }
+        
+        if(this.state.attackCooldown > 0) this.state.attackCooldown--;
+    }
+}
+
+class UpgradesScene extends Phaser.Scene {
+    create() {
+        this.add.rectangle(400,300,800,600, 0x1a1a2e);
+        this.add.text(400,50, 'UPGRADES', {color:'#ffd700', fontSize:'28px'}).setOrigin(0.5);
+        this.add.text(400,90, `Tickets: ${GAME.tickets}`, {color:'#fff'}).setOrigin(0.5);
+        
+        const ups = [
+            {k:'damage', n:'Daño +5%', c:100},
+            {k:'speed', n:'Velocidad +10%', c:150},
+            {k:'health', n:'HP +20', c:200},
+            {k:'regen', n:'Regeneración', c:300}
+        ];
+        
+        let y = 150;
+        ups.forEach(u => {
+            const up = GAME.upgrades[u.k];
+            const cost = Math.floor(u.c * Math.pow(1.5, up.level));
+            const can = GAME.tickets >= cost && up.level < up.max;
+            
+            const bg = this.add.rectangle(400, y, 500, 70, can?0x2d2d2d:0x1a1a1a).setStrokeStyle(can?3:1, can?0xffd700:0x444);
+            this.add.text(100, y-15, u.n, {color:can?'#ffd700':'#666'});
+            this.add.text(100, y+10, `Nivel: ${up.level}/${up.max}`, {color:'#888', fontSize:'14px'});
+            
+            if(can) {
+                const btn = this.add.text(500, y, `🎫 ${cost}`, {color:'#00ff00'}).setOrigin(0.5).setInteractive();
+                btn.on('pointerdown', () => {
+                    GAME.tickets -= cost;
+                    up.level++;
+                    localStorage.setItem('mariaRPG_v4', JSON.stringify(GAME));
+                    this.scene.restart();
+                });
+            }
+            y += 90;
+        });
+        
+        this.add.text(400, 550, '[TOCA] Menu', {color:'#666'}).setOrigin(0.5).setInteractive({useHandCursor:true})
+            .on('pointerdown', () => this.scene.start('Menu'));
+    }
+}
+
+class ChurchScene extends Phaser.Scene {
+    create() {
+        this.add.rectangle(400,300,800,600, 0x2d1b1b);
+        
+        // Altar
+        this.add.rectangle(400, 280, 200, 120, 0x5a4a3a).setStrokeStyle(5, 0xffd700);
+        this.add.text(400, 250, '✝', {fontSize:'60px'}).setOrigin(0.5);
+        
+        // Jesus
+        this.add.text(380, 350, '✝', {fontSize:'40px'}).setInteractive({useHandCursor:true})
+            .on('pointerdown', () => this.showDialog('Jesús', '¿Ya se casaron? 💍'));
+        
+        // Jose
+        this.add.text(450, 380, '[P]', {fontSize:'35px'}).setInteractive({useHandCursor:true})
+            .on('pointerdown', () => this.showDialog('Jose', 'Esta iglesia está muy padre 💒'));
+        
+        this.add.text(400, 550, '[TOCA] Menu', {color:'#666'}).setOrigin(0.5).setInteractive({useHandCursor:true})
+            .on('pointerdown', () => this.scene.start('Menu'));
+    }
+    
+    showDialog(n, t) {
+        const box = this.add.rectangle(400, 500, 500, 100, 0x5d4e37).setStrokeStyle(3, 0xffd700);
+        this.add.text(420, 460, n, {color:'#ffd700'});
+        this.add.text(420, 485, t, {color:'#fff', wordWrap:{width:460}});
+        this.input.once('pointerdown', () => box.destroy());
+    }
+}
+
+class RanchScene extends Phaser.Scene {
+    create() {
+        this.add.rectangle(400,300,800,600, 0x87ceeb);
+        
+        this.add.text(400, 50, 'RANCHO DE GATITOS', {color:'#ffd700', fontSize:'24px'}).setOrigin(0.5);
+        
+        const cats = [
+            {n:'Celeste', c:0xffffff},
+            {n:'Nieve', c:0xf0f0f0},
+            {n:'Mimi', c:0xffb6c1},
+            {n:'Luna', c:0x4a4a4a},
+            {n:'Pelusa', c:0xdeb887},
+            {n:'Bombon', c:0xff69b4}
+        ];
+        
+        cats.forEach((cat, i) => {
+            const x = 200 + (i%3)*200;
+            const y = 200 + Math.floor(i/3)*150;
+            
+            const body = PixelFactory.createCat(this, x, y, cat.c);
+            this.add.text(x-20, y+40, cat.n, {color:'#fff', fontSize:'14px', backgroundColor:'#000'}).setOrigin(0.5);
+            
+            body.setInteractive({useHandCursor:true});
+            body.on('pointerdown', () => {
+                const resp = ['¡Miau!', 'Purrr!', '🐱'][Math.floor(Math.random()*3)];
+                this.showToast(cat.n, resp);
+            });
+        });
+        
+        this.add.text(400, 550, '[TOCA] Menu', {color:'#666'}).setOrigin(0.5).setInteractive({useHandCursor:true})
+            .on('pointerdown', () => this.scene.start('Menu'));
+    }
+    
+    showToast(cat, resp) {
+        const toast = this.add.text(400, 300, `${cat}: ${resp}`, {
+            color:'#fff', fontSize:'20px', backgroundColor:'#000', padding:{x:20, y:10}
+        }).setOrigin(0.5);
+        this.tweens.add({targets:toast, alpha:0, y: 200, duration: 2000, onComplete: () => toast.destroy()});
+    }
+}
+
+// INIT
+const game = new Phaser.Game({
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    parent: 'game-container',
+    backgroundColor: '#0a0a0a',
+    scene: [BootScene, MenuScene, OverworldScene, ArcadeScene, UpgradesScene, ChurchScene, RanchScene]
+});
+</script>
+</body>
+</html>
