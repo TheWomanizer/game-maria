@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stardew Love - Un Mundo Para Ti</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--g:#FFD700;--p:#FF6B9D;--u:#9B59B6}
+body{background:#000;font-family:'VT323',monospace;overflow:hidden;cursor:none}
+.s{display:none;width:100vw;height:100vh;position:absolute;top:0;left:0}
+.s.on{display:block}
+#ti{background:linear-gradient(180deg,#0f0c29,#302b63,#24243e);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.lg{font-family:'Press Start 2P';font-size:clamp(12px,3vw,32px);background:linear-gradient(45deg,#FF6B9D,#FFD700,#9B59B6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gs 3s infinite;background-size:300%}
+@keyframes gs{0%,100%{background-position:0%50%}50%{background-position:100%50%}}
+.sb{color:#fff;font-size:clamp(16px,2.5vw,24px);margin-bottom:30px;animation:pl 1.5s infinite}
+@keyframes pl{0%,100%{opacity:1}50%{opacity:0.6}}
+.pr{color:var(--g);font-family:'Press Start 2P';font-size:clamp(8px,1.2vw,12px);animation:bk 1s step-end infinite}
+@keyframes bk{0%,100%{opacity:1}50%{opacity:0}}
+#wo{background:linear-gradient(180deg,#87CEEB,#98D8AA 35%,#5A8F29)}
+.sn{position:absolute;top:20px;right:40px;width:60px;height:60px;background:#FFD93D;border-radius:50%;box-shadow:0 0 40px #FFD93D;animation:snp 5s infinite}
+@keyframes snp{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.cl{position:absolute;background:#fff;border-radius:50px;opacity:0.8;animation:cmd 20s linear infinite}
+@keyframes cmd{from{transform:translateX(-100px)}to{transform:translateX(105vw)}}
+.tr{position:absolute;width:40px;height:55px}
+.tr .t{width:40px;height:35px;background:#228B22;border-radius:50% 50% 40% 40%;position:absolute;box-shadow:inset -5px -5px 0 #006400}
+.tr .b{width:10px;height:20px;background:#8B4513;position:absolute;bottom:0;left:50%;transform:translateX(-50%)}
+.lk{position:absolute;bottom:20%;left:40%;width:160px;height:60px;background:linear-gradient(180deg,#4A90D9,#2E5A88);border-radius:50% 60% 40% 50%;animation:lkw 3s infinite}
+@keyframes lkw{0%,100%{border-radius:50% 60% 40% 50%}50%{border-radius:55% 65% 45% 55%}}
+.fs{position:absolute;font-size:16px;animation:fsw 6s linear infinite}
+@keyframes fsw{0%,49%{transform:translateX(-30px)}50%,100%{transform:translateX(130px)}}
+.bl{position:absolute;cursor:pointer;transition:transform .2s}
+.bl:hover{transform:scale(1.08)}
+.ph{width:90px;height:80px}
+.ph .rf{width:0;height:0;border-left:50px solid transparent;border-right:50px solid transparent;border-bottom:40px solid #8B0000;position:absolute}
+.ph .wl{width:90px;height:45px;background:linear-gradient(180deg,#DEB887,#D2691E);position:absolute;top:36px}
+.ph .dr{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:22px;height:34px;background:#4A3728}
+.ph .wn{width:14px;height:14px;background:#87CEEB;position:absolute;top:42px;border:2px solid #4A3728}
+.sh{width:100px;height:90px}
+.sh .rf{width:0;height:0;border-left:55px solid transparent;border-right:55px solid transparent;border-bottom:45px solid #4B0082;position:absolute}
+.sh .wl{width:100px;height:48px;background:linear-gradient(180deg,#9400D3,#4B0082);position:absolute;top:40px}
+.sh .tw{position:absolute;top:-16px;right:6px;width:20px;height:60px;background:#696969}
+.ch{width:80px;height:120px}
+.ch .tw{position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:50px;background:#696969}
+.ch .cr{position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:14px;height:14px;background:var(--g);box-shadow:0 0 10px var(--g)}
+.ch .cr::before{content:'';position:absolute;top:4px;left:2px;width:10px;height:5px;background:var(--g)}
+.ch .bd{position:absolute;top:45px;width:80px;height:75px;background:linear-gradient(180deg,#A0A0A0,#707070)}
+.ch .rc{position:absolute;top:52px;width:20px;height:35px;background:#1a0a0a;border-radius:20px 20px 0 0}
+.rn{width:120px;height:65px}
+.rn .rf{width:0;height:0;border-left:68px solid transparent;border-right:68px solid transparent;border-bottom:28px solid #8B4513;position:absolute}
+.rn .wl{position:absolute;top:24px;width:120px;height:41px;background:linear-gradient(180deg,#DEB887,#D2691E)}
+.rn .fn{position:absolute;bottom:0;width:120px;height:14px;background:repeating-linear-gradient(90deg,#8B4513 0px,#8B4513 6px,transparent 6px,transparent 12px)}
+#pl{position:absolute;width:24px;height:38px;z-index:40;transition:left .06s,top .06s}
+.ps{width:24px;height:38px;position:relative}
+.ps .hd{position:absolute;top:0;left:50%;transform:translateX(-50%);width:15px;height:15px;background:#FFDBAC;border-radius:3px}
+.ps .hr{position:absolute;top:-2px;left:50%;transform:translateX(-50%);width:17px;height:8px;background:#4A3728}
+.ps .br{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:11px;height:6px;background:#4A3728}
+.ps .by{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:15px;height:13px;background:#4169E1}
+.ps .lg{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:15px;height:10px}
+.ps .lg::before,.ps .lg::after{content:'';position:absolute;width:5px;height:10px;background:#2C3E50;bottom:0}
+.ps .lg::before{left:0}.ps .lg::after{right:0}
+.sd{position:absolute;cursor:pointer;animation:nb 1s infinite}
+@keyframes nb{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.sd .cr{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:10px}
+.sd .hd{position:absolute;top:0;left:50%;transform:translateX(-50%);width:15px;height:15px;background:#FFDBAC;border-radius:50%}
+.sd .hr{position:absolute;top:-3px;left:50%;transform:translateX(-50%);width:18px;height:14px;background:#9400D3;border-radius:50% 50% 0 0}
+.sd .dr{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:18px;height:18px;background:linear-gradient(180deg,#9400D3,#4B0082)}
+#bt{background:linear-gradient(180deg,#1a0a2e,#2d1b4e,#0a0a15)}
+.ba{position:absolute;bottom:0;width:100%;height:120px;background:linear-gradient(180deg,transparent,#1a0a2e)}
+.ft{position:absolute;bottom:80px;font-size:80px;filter:drop-shadow(0 0 20px var(--u));transition:transform .2s}
+.ft-pl{left:8%;animation:fi 1s infinite}
+.ft-en{right:8%;transform:scaleX(-1);animation:fi 1s infinite reverse}
+@keyframes fi{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.ft.at{animation:at .3s}
+@keyframes at{0%,100%{transform:translateX(0)}50%{transform:translateX(45px)}}
+.hpb{position:absolute;top:18%;width:150px;height:18px;background:#222;border:2px solid var(--g);border-radius:3px}
+.hpb-pl{left:5%}.hpb-en{right:5%}
+.hpf{height:100%;background:linear-gradient(90deg,#E74C3C,var(--g),#2ECC71);transition:width .3s}
+.nmb{position:absolute;top:22%;color:#fff;font-size:12px;text-shadow:1px 1px 2px #000}
+.nmb-pl{left:5%}.nmb-en{right:5%}
+#ch{background:linear-gradient(180deg,#1a0a0a,#2d1b1b,#0f0a0a)}
+.alt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:120px}
+.jj{position:absolute;top:20%;left:48%;font-size:65px;animation:jfloat 3s infinite}
+@keyframes jfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.sp{position:absolute;background:#fff;color:#000;padding:12px 18px;border-radius:14px;font-size:17px;max-width:380px;animation:bp .2s}
+@keyframes bp{0%{transform:scale(0)}100%{transform:scale(1)}}
+.sp::before{content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid #fff}
+#rn{background:linear-gradient(180deg,#87CEEB,#98D8AA 30%,#7CCD7C 50%,#8B4513)}
+.rni{position:absolute;top:16%;left:50%;transform:translateX(-50%);font-size:75px}
+.ct{position:absolute;font-size:35px;cursor:pointer;transition:transform .2s;animation:cw 2s infinite}
+@keyframes cw{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+.ct:hover{transform:scale(1.25)}
+.cl{position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;white-space:nowrap}
+#sr{background:linear-gradient(180deg,#4B0082,#2d1b4e,#1a0a2e)}
+.sb{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:90px;animation:sfl 3s infinite}
+@keyframes sfl{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,-50%)translateY(-10px)}}
+#wi{background:linear-gradient(180deg,#FF6B9D,#9B59B6,#2d1b4e);flex-direction:column;align-items:center;justify-content:center}
+.ks{font-size:120px;animation:kp .9s infinite}
+@keyframes kp{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.wt{font-family:'Press Start 2P';font-size:clamp(14px,3vw,28px);color:#fff;text-shadow:2px 2px 0 var(--p);animation:wp .9s infinite;text-align:center}
+@keyframes wp{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+#hu{position:fixed;top:0;left:0;right:0;padding:8px 12px;display:flex;justify-content:space-between;z-index:100;background:linear-gradient(180deg,rgba(0,0,0,0.7),transparent)}
+.hi{background:rgba(0,0,0,0.7);border:2px solid var(--g);padding:6px 12px;color:#fff;font-size:14px;border-radius:6px}
+.hh{color:var(--p)}
+#dl{disp

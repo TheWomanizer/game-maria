@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Para Mi Reina 👑</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:ital@0;1&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #0f0f23 100%);
+            font-family: 'Playfair Display', serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #d4af37;
+            border-radius: 50%;
+            animation: float 15s infinite;
+            opacity: 0.6;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .card {
+            background: linear-gradient(145deg, rgba(45, 27, 78, 0.9), rgba(15, 15, 35, 0.95));
+            border: 2px solid #d4af37;
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 0 60px rgba(212, 175, 55, 0.3), inset 0 0 30px rgba(212, 175, 55, 0.1);
+        }
+        
+        .crown {
+            font-size: 60px;
+            margin-bottom: 20px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 20px #d4af37; }
+            to { text-shadow: 0 0 40px #d4af37, 0 0 60px #d4af37; }
+        }
+        
+        h1 {
+            font-family: 'Cinzel', serif;
+            color: #d4af37;
+            font-size: 1.8em;
+            margin-bottom: 10px;
+            letter-spacing: 3px;
+        }
+        
+        .subtitle {
+            color: #a78bfa;
+            font-style: italic;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .character-img {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 3px solid #d4af37;
+            margin: 0 auto 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            background: linear-gradient(145deg, #2d1b4e, #1a0a2e);
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .stat {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+        }
+        
+        .stat-label {
+            color: #a78bfa;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-value {
+            color: #d4af37;
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .message {
+            background: rgba(167, 139, 250, 0.1);
+            border-left: 3px solid #d4af37;
+            padding: 15px;
+            margin: 25px 0;
+            text-align: left;
+            color: #e2e8f0;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+        
+        .message strong {
+            color: #d4af37;
+        }
+        
+        .heart {
+            color: #ff6b9d;
+            font-size: 2em;
+            margin-top: 20px;
+            animation: heartbeat 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        .signature {
+            color: #a78bfa;
+            font-size: 0.85em;
+            margin-top: 25px;
+            font-style: italic;
+        }
+        
+        .from {
+            color: #d4af37;
+            font-weight: bold;
+        }
+        
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(145deg, #d4af37, #b8962e);
+            color: #1a0a2e;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-family: 'Cinzel', serif;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.85em;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.4);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid #d4af37;
+            color: #d4af37;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+        
+        .secret-input {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .secret-input input {
+            background: rgba(167, 139, 250, 0.1);
+            border: 1px solid #d4af37;
+            padding: 12px 20px;
+            border-radius: 25px;
+            color: #fff;
+            width: 70%;
+            font-size: 1em;
+            text-align: center;
+        }
+        
+        .secret-input input::placeholder {
+            color: rgba(167, 139, 250, 0.5);
+        }
+        
+        .show {
+            display: block;
+        }
+        
+        .power-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(167, 139, 250, 0.2);
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        
+        .power-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #d4af37, #ff6b9d);
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+        
+        @media (max-width: 480px) {
+            .card { padding: 30px 20px; }
+            h1 { font-size: 1.4em; }
+            .character-img { width: 140px; height: 140px; font-size: 60px; }
+            .stats { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <div class="container">
+        <div class="card">
+            <div class="crown">👑</div>
+            <h1>SINDEL</h1>
+            <p class="subtitle">Reina del Outworld</p>
+            
+            <div class="character-img">⚔️</div>
+            
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-label">Poder</div>
+                    <div class="stat-value">EXPLOSIVO</div>
+                    <div class="power-bar">
+                        <div class="power-fill" style="width: 95%"></div>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Belleza</div>
+                    <div class="stat-value">LEGENDARIA</div>
+                    <div class="power-bar">
+                        <div class="power-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Coraje</div>
+                    <div class="stat-value">INFINITO</div>
+                    <div class="power-bar">
+                        <div class="power-fill" style="width: 90%"></div>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Dificultad</div>
+                    <div class="stat-value">LEOPARDO</div>
+                    <div class="power-bar">
+                        <div class="power-fill" style="width: 88%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="message">
+                <strong>¿Sabías que?</strong><br>
+                Sindel fue la primera mujer en unite a los Guerreros de la Luz.
+                Su voz es su arma más poderosa - puede paralizar a cualquiera con un solo grito.
+            </div>
+            
+            <div class="heart">💜</div>
+            
+            <p class="signature">
+                Hecha con <span style="color: #ff6b9d">♥</span> por alguien que te admira<br>
+                <span class="from">- De tu admirador secreto -</span>
+            </p>
+            
+            <div class="controls">
+                <button onclick="showSecret()">💝 Déjale un mensaje</button>
+                <button class="btn-secondary" onclick="shareGame()">📤 Compartir</button>
+            </div>
+            
+            <div class="secret-input" id="secretInput">
+                <input type="text" id="loveMessage" placeholder="Escribe tu mensaje..." maxlength="100">
+                <button onclick="sendMessage()" style="margin-top: 10px;">Enviar 💌</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+            particlesContainer.appendChild(particle);
+        }
+        
+        function showSecret() {
+            document.getElementById('secretInput').classList.toggle('show');
+        }
+        
+        function sendMessage() {
+            const msg = document.getElementById('loveMessage').value;
+            if (msg.trim()) {
+                alert('💌 Mensaje enviado:\n\n"' + msg + '"\n\n¡Ella lo recibirá pronto!');
+                document.getElementById('loveMessage').value = '';
+            }
+        }
+        
+        function shareGame() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Sindel - Para Ti',
+                    text: '¡Descubre tu personaje de Mortal Kombat!',
+                    url: window.location.href
+                });
+            } else {
+                alert('¡Copia el enlace y compártelo! 🔗');
+            }
+        }
+    </script>
+</body>
+</html>

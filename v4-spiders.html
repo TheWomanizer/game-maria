@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maria & The Robot Garden - V4: Spiders</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a1a1a;display:flex;justify-content:center;align-items:center;min-height:100vh}
+#game-container{border:4px solid #7c4dff;border-radius:8px}
+.controls{position:fixed;bottom:20px;display:flex;gap:10px}
+.btn{background:#7c4dff;color:#fff;padding:15px 22px;border:none;border-radius:5px;font-size:15px}
+.btn:active{background:#651fff}
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<div class="controls">
+<button class="btn" onclick="move('left')">←</button>
+<button class="btn" onclick="move('up')">↑</button>
+<button class="btn" onclick="move('down')">↓</button>
+<button class="btn" onclick="move('right')">→</button>
+<button class="btn" onclick="jump()">SALTO</button>
+</div>
+<script>
+// VERSION 4: Spiders and car
+class SpiderScene extends Phaser.Scene{
+constructor(){super({key:'SpiderScene'})}
+preload(){
+this.load.spritesheet('spider','https://labs.phaser.io/assets/sprites/spider.png',{frameWidth:32,frameHeight:32});
+this.load.image('car00','https://labs.phaser.io/assets/sprites/car00.png');
+this.load.image('barrel','https://labs.phaser.io/assets/sprites/barrel.png');
+this.load.image('crate','https://labs.phaser.io/assets/sprites/crate32.png');
+this.load.image('platform','https://labs.phaser.io/assets/sprites/platform.png');
+this.load.image('shiplauncher','https://labs.phaser.io/assets/sprites/shiplauncher.png');
+this.load.image('helicopter','https://labs.phaser.io/assets/sprites/helicopter.png');
+}
+create(){
+this.add.image(400,300,'helicopter');
+const platforms=this.physics.add.staticGroup();
+platforms.create(400,580,'platform').setScale(2).refreshBody();
+platforms.create(150,400,'platform');
+platforms.create(650,350,'platform');
+platforms.create(300,250,'platform');
+platforms.create(550,180,'platform');
+platforms.create(100,150,'platform');
+this.player=this.physics.add.sprite(100,500,'spider',0);
+this.player.setBounce(0.1);
+this.player.setCollideWorldBounds(true);
+this.physics.add.collider(this.player,platforms);
+this.cursors=this.input.keyboard.createCursorKeys();
+this.cars=this.physics.add.group();
+for(let i=0;i<4;i++){
+let c=this.cars.create(Phaser.Math.Between(200,700),Phaser.Math.Between(50,150),'car00');
+c.setVelocityX(Phaser.Math.Between(-150,150));
+c.setBounce(1);
+c.setCollideWorldBounds(true);
+}
+this.barrels=this.physics.add.group();
+for(let i=0;i<5;i++){
+let b=this.barrels.create(Phaser.Math.Between(100,700),Phaser.Math.Between(100,400),'barrel');
+b.setBounce(0.6);
+b.setDrag(100);
+}
+this.physics.add.collider(this.player,platforms);
+this.physics.add.collider(this.barrels,platforms);
+this.physics.add.collider(this.barrels,this.cars);
+this.physics.add.collider(this.player,this.cars,this.hitCar,null,this);
+this.physics.add.collider(this.player,this.barrels,this.hitBarrel,null,this);
+this.score=0;
+this.add.text(20,20,'PUNTOS:',{fontSize:'22px',fill:'#7c4dff'});
+this.scoreText=this.add.text(120,20,'0',{fontSize:'22px',fill:'#fff'});
+this.add.text(20,50,'SALUD:',{fontSize:'22px',fill:'#ff5252'});
+this.healthText=this.add.text(100,50,'100',{fontSize:'22px',fill:'#fff'});
+this.add.text(630,20,'V4:SPIDER',{fontSize:'14px',fill:'#666'});
+this.msg=this.add.text(400,300,'',{fontSize:'30px',fill:'#fff',backgroundColor:'#000'}).setOrigin(0.5).setVisible(false);
+}
+hitCar(player,car){
+this.cameras.main.shake(100,0.01);
+this.healthText.setText(Math.max(0,this.health-20));
+if(this.health<=0){
+this.msg.setText('GAME OVER').setVisible(true);
+this.physics.pause();
+}
+}
+hitBarrel(player,barrel){
+this.score+=25;
+this.scoreText.setText(this.score);
+barrel.disableBody(true,true);
+this.cameras.main.shake(50,0.003);
+}
+update(){
+if(this.cursors.left.isDown)this.player.setVelocityX(-160);
+else if(this.cursors.right.isDown)this.player.setVelocityX(160);
+else this.player.setVelocityX(0);
+if(this.cursors.up.isDown&&this.player.body.touching.down)this.player.setVelocityY(-350);
+this.player.anims.play('crawl',true);
+this.cars.children.iterate(c=>{if(c.active&&(c.x<50||c.x>750))c.setVelocityX(-c.body.velocity.x)});
+}
+}
+let config={type:Phaser.AUTO,width:800,height:600,parent:'game-container',physics:{default:'arcade',arcade:{gravity:{y:500},debug:false}},scene:[SpiderScene]};
+let game=new Phaser.Game(config);
+function move(dir){
+let s=game.scene.scenes[0];
+if(!s)return;
+if(dir==='left')s.player.setVelocityX(-160);
+if(dir==='right')s.player.setVelocityX(160);
+if(dir==='up')s.player.setVelocityY(-350);
+if(dir==='down')s.player.setVelocityY(200);
+setTimeout(()=>{if(s.player)s.player.setVelocityX(0)},150);
+}
+function jump(){
+let s=game.scene.scenes[0];
+if(s&&s.player&&s.player.body.touching.down)s.player.setVelocityY(-350);
+}
+</script>
+</body>
+</html>

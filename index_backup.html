@@ -545,18 +545,6 @@ if(e.key===' '){e.preventDefault();attackArcade()}
 if(e.key==='Enter'&&!arc.gameOn)startArcade()}
 })
 
-// Click to move - Maria follows the mouse
-document.addEventListener('click',function(e){
-  if(G.scene==='world'&&!e.target.closest('.bd')&&!e.target.closest('#player')){
-    let rect=document.getElementById('world').getBoundingClientRect();
-    let x=((e.clientX-rect.left)/rect.width)*100;
-    let y=((e.clientY-rect.top)/rect.height)*100;
-    G.px=x;G.py=y;
-    document.getElementById('player').style.left=x+'%';
-    document.getElementById('player').style.top=y+'%';
-  }
-})
-
 function start(){show('world');document.getElementById('hud').style.display='flex'}
 function show(s){document.querySelectorAll('.s').forEach(x=>x.classList.remove('on'));document.getElementById(s).classList.add('on');G.sc=s;document.getElementById('loc').textContent='📍 '+s.charAt(0).toUpperCase()+s.slice(1);document.getElementById('bctl').classList.toggle('on',s==='battle');document.getElementById('mctl').style.display=(s==='world'?'grid':'none');document.getElementById('mctl-arcade').style.display=(s==='arcade'?'grid':'none')}
 
@@ -581,53 +569,40 @@ document.getElementById('dlg').classList.add('on')}
 // EL JUEGO ES PARA ELLA - ELLA JUEGA COMO SINDEL
 // EL NPC ES JOSÉ (tu) - ÉL LE DICE COSAS DURAS A ELLA
 
-// Cuando ella interactúa con Jose - Jose le dice cosas (solo el habla, coqueteo/admiracion)
+// Cuando ella interactúa con Jose (el NPC), ÉL le dice cosas a ELLA
 const joseSaysToMaria = [
-    "Hola Maria 💕",
-    "¿Qué haces por aquí?",
-    "¿Cómo estás?",
-    "Oye, ¿vienes seguido?",
-    "¡Hola! ¿Qué tal?",
-    "Hey, ¿buscas algo?",
-    "¿Vienes a caminar también?",
-    "Buen día ¿no?",
-    "¿Ya conociste el ranch?",
-    "Oye, estás muy nice hoy",
-    "¿Me acompañas un rato?",
-    "Me gusta verte por aquí",
-    "¿Qué onda?",
-    "¡Hola! Pasaba por aquí",
-    "Oye, ¿te conozco de algún lado?"
+    "Oye, te veo y... me gustas mucho 💕",
+    "¿Sabes? Cada vez que te veo me da cosa en el estómago 💗",
+    "Eres diferente a todas... me gustas demasiado 😳",
+    "No teigo que seamos novios... pero me gustas BASTANTE 😘",
+    "Contigo me siento en paz... me gustas 💜",
+    "¡Síguele así que me gustas cada día más! 💖",
+    "¿Sabes que me HACES reír? ¡ME GUSTA MUCHOOO! 😂💕",
+    "No soy bueno expresando esto... pero me gustas, PACHO 💗",
+    "Hola reina 👑",
+    "¿Cómo estás? 💕"
 ]
 
-// Jose flirtea - solo el habla
+const sindelReacts = [
+    "😳 *se pone roja*",
+    "💕 *sonríe tímida*",
+    "¡Eso fue muy dulce! 🥹",
+    "*te mira a los ojos* ... gracias 💗",
+    "¡Eres tan dulce! 💖",
+    "*se acerca tímida* ... a mí también me gustas 💜",
+    "🤭 *no sabe qué decir*",
+    "💗 *sonríe mucho*"
+]
+
+// El NPC es Jose - cuando le hablas, ÉL te dice cosas
+const joseMsg = joseSaysToMaria
+const sindelResp = sindelReacts
+
 function talkJose(){
-let jMsg=joseSaysToMaria[Math.floor(Math.random()*joseSaysToMaria.length)];
-dlg('👨 Jose',jMsg+'<br><br>[1] ⚔️ Battle<br>[2] 💬 Hablar más',[
+let jMsg=joseMsg[Math.floor(Math.random()*joseMsg.length)];
+let sResp=sindelResp[Math.floor(Math.random()*sindelResp.length)];
+dlg('👨 Jose',jMsg+'<br><br>👑 Maria: '+sResp+'<br><br>[1] ⚔️ Battle<br>[2] 💬 Hablar más',[
 {t:'💬 Hablar más',a:()=>{G.h+=1;upH();talkJose()}},
-{t:'⚔️ Battle',a:()=>startArcade()}
-])}
-
-function talkJoseInChurch(){
-let jMsg=joseSaysToMaria[Math.floor(Math.random()*joseSaysToMaria.length)];
-dlg('👨 Jose (Iglesia)',jMsg+'<br><br>[1] 💬 Hablar más<br>[2] ✝️ Jesús',[
-{t:'💬 Hablar más',a:()=>{G.h+=1;upH();talkJoseInChurch()}},
-{t:'✝️ Jesús',a:()=>talkJesusChurch()}
-])}
-
-function talkJoseRobot(){
-let jMsg=joseSaysToMaria[Math.floor(Math.random()*joseSaysToMaria.length)];
-dlg('👨 Jose (Robot)',jMsg+'<br><br>[1] 💬 Hablar más<br>[2] 🚪 Salir',[
-{t:'💬 Hablar más',a:()=>{G.h+=1;upH();talkJoseRobot()}},
-{t:'🚪 Salir',a:()=>show('world')}
-])}
-
-function talkOurHouse(){
-let jMsg=joseSaysToMaria[Math.floor(Math.random()*joseSaysToMaria.length)];
-dlg('🏡 Jose',jMsg+'<br><br>[1] 💬 Hablar más<br>[2] 🚪 Salir',[
-{t:'💬 Hablar más',a:()=>{G.h+=1;upH();talkOurHouse()}},
-{t:'🚪 Salir',a:()=>show('world')}
-])}
 {t:'⚔️ Battle',a:()=>startB()}
 ])}
 
@@ -636,14 +611,16 @@ let jMsg=joseMsg[Math.floor(Math.random()*joseMsg.length)];
 let sResp=sindelResp[Math.floor(Math.random()*sindelResp.length)];
 dlg('👨 Jose','👑 Maria: '+sResp+'<br><br>Él: "'+jMsg+'"');G.h+=3;upH();hearts()}
 
-// Jose in church - dialogos normales
+// Jose in church - special romantic dialogs
 const joseInChurch = [
-    "Esta iglesia está muy padre 💒",
-    "¿Vienes mucho por aquí?",
-    "Me gusta este lugar, está tranquilo",
-    "¿Ya conociste a Jesús?",
-    "Es nice estar aquí",
-    "¿Qué te parece la iglesia?"
+    "Sabes qué? Aquí, en esta iglesia... contigo me casaría 💍",
+    "Te ves tão hermosa aquí... me recuerdas a un ángel ✨",
+    "Esta iglesia... sería perfecta para nuestra boda, no crees? 💒",
+    "Contigo me casaría ahora mismo, aquí y ahora 👰🤵",
+    "Eres la mujer más hermosa que he visto en esta iglesia ✨💕",
+    "Si algún día me caso, quiero que sea aquí... contigo 💍",
+    "Me das ganas de proponerte matrimonio aquí mismo 💕",
+    "Esta iglesia te queda perfecta... te ves increíble 👑"
 ]
 
 function talkJoseInChurch(){
@@ -655,17 +632,14 @@ dlg('👨 Jose (Iglesia)',msg+'<br><br>👑 Maria: '+resp+'<br><br>[1] 💬 Habl
 ])}
 
 function talkJesusChurch(){
-dlg('✝️ Jesús','¿Ya se casaron? 💍<br><br>¡Felicidades! 🎊',[{t:'💕 Gracias Jesús',a:()=>show('world')}])}
+dlg('✝️ Jesús','Ustedes dos tienen nombres hermosos...<br><br>¿Ya se casaron? 💍😂<br><br>¡Felicidades! 🎊',[{t:'💕 Gracias Jesús',a:()=>show('world')}])}
 
-// Robot workshop dialogs - Jose
+// Robot workshop dialogs - Jose making comments
 const joseRobotComments = [
-    "¿Vienes a ver el robot?",
-    "Estoy construyendo algo cool 🤖",
-    "¿Te interesa la robótica?",
-    "Mira, ya tiene forma",
-    "¿Qué te parece?",
-    "Aún falta mucho pero va bien"
-]
+    "Oye... me gusta 💕",
+    "Ey, tan bonita a dónde vas? 😳",
+    "Estás construyendo algo o me estás conquistando? 😂",
+    "Holaaaa ❤️¿Vienes a ver mi robot? 🤖",
     "Ey, ese vestido te queda increíble 😍",
     "Oye oye... ¿vienes a verme a mí o al robot? 😅",
     "Mira, estoy construyendo un robot... pero tú eres más interesante 💕",
@@ -792,12 +766,13 @@ document.getElementById('arc-hp2').style.width=arc.p2+'%'}
 function winArcade(){
 arc.gameOn=false;
 show('win');
-G.h+=50;upH();
-setTimeout(()=>dlg('👨 Jose','¡GANASTE! 🎉<br><br>Maria derrotó a Shao Khan<br><br>¡Eres muy fuerte! 💪',[{t:'🎮 Volver',a:()=>show('world')}]),2000)}
+G.h+=100;upH();
+for(let i=0;i<15;i++)setTimeout(hearts,i*150);
+setTimeout(()=>dlg('👸💋💀','¡SINDEL GANA!<br><br>Ella defeating a Shao Khan...<br><br>💋 *beso*<br><br>¡Eres el MEJOR! 💕',[{t:'🎮 Volver al mapa',a:()=>show('world')}]),3000)}
 
 function loseArcade(){
 arc.gameOn=false;
-dlg('👨 Jose','GAME OVER 💀<br><br>Mejor suerte para la próxima<br><br>¡Tú puedes! 💪',[{t:'🔄 Retry',a:startArcade},{t:'🏠 Salir',a:()=>show('world')}])}
+dlg('💀','¡SHAO KHAN GANA!<br><br>Pero Maria es fuerte...<br><br>¡Intenta de nuevo! 💪',[{t:'🔄 Retry',a:startArcade},{t:'🏠 Salir',a:()=>show('world')}])}
 </script>
 </body>
 </html>

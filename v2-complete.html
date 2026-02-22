@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Maria & The Robot Garden - Alien Edition</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#0d1117;overflow:hidden;touch-action:none;font-family:'VT323',monospace;user-select:none}
+#game-container{width:100vw;height:100vh;display:flex;justify-content:center;align-items:center}
+.touch-controls{position:fixed;bottom:20px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;z-index:100}
+.dpad{grid-template-columns:repeat(3,50px);gap:5px;display:grid}
+.dpad button{background:rgba(88,166,255,0.3);border:2px solid #58a6ff;border-radius:10px;color:#58a6ff;font-size:24px}
+.action-btns{display:flex;gap:10px}
+.action-btns button{background:linear-gradient(45deg,#58a6ff,#a371f7);border:none;border-radius:10px;padding:15px 20px;color:#fff;font-size:18px}
+@media(min-width:768px){.touch-controls{display:none}}
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<div class="touch-controls">
+<div class="dpad">
+<button></button><button ontouchstart="input.up=true" ontouchend="input.up=false">↑</button><button></button>
+<button ontouchstart="input.left=true" ontouchend="input.left=false">←</button>
+<button ontouchstart="input.down=true" ontouchend="input.down=false">↓</button>
+<button ontouchstart="input.right=true" ontouchend="input.right=false">→</button>
+</div>
+<div class="action-btns">
+<button ontouchstart="input.action=true" ontouchend="input.action=false">A</button>
+</div>
+</div>
+<script>
+// VERSION 2: ALIEN THEMED - Using external sprites
+let input = {up:false,down:false,left:false,right:false,action:false};
+
+class Boot extends Phaser.Scene {
+    constructor() { super({key:'Boot'}); }
+    preload() {
+        // Alien themed assets
+        this.load.spritesheet('alien','https://labs.phaser.io/assets/sprites/alien.png',{frameWidth:32,frameHeight:32});
+        this.load.image('baddie1','https://labs.phaser.io/assets/sprites/shmup-baddie1.png');
+        this.load.image('baddie2','https://labs.phaser.io/assets/sprites/shmup-baddie2.png');
+        this.load.image('baddie3','https://labs.phaser.io/assets/sprites/shmup-baddie3.png');
+        this.load.image('boulder','https://labs.phaser.io/assets/sprites/boulder.png');
+        this.load.image('diamond','https://labs.phaser.io/assets/sprites/diamond.png');
+        this.load.image('meteor','https://labs.phaser.io/assets/sprites/meteor.png');
+        this.load.image('space','https://labs.phaser.io/assets/skies/space3.png');
+        this.load.image('metal','https://labs.phaser.io/assets/sprites/metal.png');
+        this.load.image('laser','https://labs.phaser.io/assets/sprites/laser.png');
+    }
+    create() {
+        this.anims.create({key:'alienWalk',frames:this.anims.generateFrameNumbers('alien',{start:0,end:5}),frameRate:10,repeat:-1});
+        
+        this.gameState = {
+            player:{hp:120,maxHp:120,mp:80,maxMp:80,gold:0,level:1},
+            inventory:{powerups:3,shields:1},
+            planets:{earth:false,moon:false,mars:false,aliens:false}
+        };
+        
+        this.scene.start('Title',this.gameState);
+    }
+}
+
+class Title extends Phaser.Scene {
+    constructor() { super({key:'Title'}); }
+    init(d) { this.gs = d; }
+    create() {
+        this.add.image(400,300,'space');
+        
+        this.add.text(400,120,'MARIA & THE\nROBOT GARDEN',{
+            fontFamily:'"Press Start 2P"',fontSize:'24px',color:'#58a6ff',align:'center'
+        }).setOrigin(0.5);
+        
+        const opts = ['INICIAR','CARGAR','ALIENS','SALIR'];
+        this.menu = this.add.text(400,350,opts.join('\n'),{
+            fontFamily:'"VT323"',fontSize:'28px',color:'#fff',align:'center'
+        }).setOrigin(0.5);
+        
+        this.add.text(400,550,'Version 2: Alien Edition',{fontSize:'14px',color:'#58a6ff'}).setOrigin(0.5);
+        
+        this.input.keyboard.on('keydown-ENTER',()=>{
+            this.cameras.main.flash(300,88,166,255);
+            this.time.delayedCall(300,()=>this.scene.start('Galaxy',this.gs));
+        });
+    }
+    
+    update() {
+        if(input.action) { input.action=false; this.scene.start('Galaxy',this.gs); }
+    }
+}
+
+class Galaxy extends Phaser.Scene {
+    constructor() { super({key:'Galaxy'}); }
+    init(d) { this.gs = d; }
+    
+    create() {
+        this.add.image(400,300,'metal');
+        
+        // Planets
+        const planets = [
+            {id:'earth',x:150,y:150,r:0x2ecc71,name:'Tierra'},
+            {id:'moon',x:650,y:150,r:0xbdc3c7,name:'Luna'},
+            {id:'mars',x:150,y:450,r:0xe74c3c,name:'Marte'},
+            {id:'aliens',x:650,y:450,r:0x9b59b6,name:'Planeta Alien'}
+        ];
+        
+        planets.forEach(p => {
+            let planet = this.add.circle(p.x,p.y,40,p.r);
+            planet.setInteractive();
+            planet.on('pointerdown',()=>this.visitPlanet(p));
+            this.add.text(p.x,p.y+55,p.name,{fontSize:'14px',color:'#fff'}).setOrigin(0.5);
+        });
+        
+        // Player ship
+        this.ship = this.physics.add.sprite(400,300,'alien',0);
+        this.ship.setCollideWorldBounds(true);
+        
+        // Enemies
+        this.enemies = this.physics.add.group();
+        for(let i=0;i<6;i++) {
+            let e = this.enemies.create(Phaser.Math.Between(100,700),Phaser.Math.Between(100,500),'baddie'+Phaser.Math.Between(1,3));
+            e.setCollideWorldBounds(true);
+            e.setBounce(1);
+            e.setVelocity(Phaser.Math.Between(-50,50),Phaser.Math.Between(-50,50));
+        }
+        
+        // UI
+        this.add.rectangle(400,30,800,60,0x000000,0.7);
+        this.hpBar = this.add.graphics();
+        this.goldText = this.add.text(650,15,'GOLD: '+this.gs.player.gold,{fontSize:'20px',color:'#ffd700'});
+        
+        // Stats
+        this.add.text(20,15,'HP: '+this.gs.player.hp,{fontSize:'20px',color:'#2ecc71'});
+        this.add.text(20,40,'MP: '+this.gs.player.mp,{fontSize:'20px',color:'#3498db'});
+        
+        // Dialogue
+        this.dialogue = this.add.rectangle(400,500,750,100,0x000000,0.9).setVisible(false);
+        this.dialogueText = this.add.text(60,470,'',{fontSize:'18px',color:'#fff'}).setVisible(false);
+        
+        // Collectibles
+        this.gems = this.physics.add.group();
+        for(let i=0;i<10;i++) {
+            let g = this.gems.create(Phaser.Math.Between(50,750),Phaser.Math.Between(50,550),'diamond');
+            g.setBounceY(0.5);
+        }
+        
+        this.physics.add.overlap(this.ship,this.gems,(s,g)=>{
+            g.disableBody(true,true);
+            this.gs.player.gold += 25;
+            this.goldText.setText('GOLD: '+this.gs.player.gold);
+        });
+        
+        this.physics.add.collider(this.ship,this.enemies,(s,e)=>{
+            this.cameras.main.shake(100,0.01);
+            this.gs.player.hp -= 10;
+            this.showDialogue('¡Has sido alcanzado por un alien! -10 HP');
+        });
+    }
+    
+    visitPlanet(p) {
+        const msgs = {
+            earth:'Bienvenido a la Tierra. Tu hogar.',
+            moon:'La Luna está silenciosa esta noche...',
+            mars:'Marte. El planeta rojo.',
+            aliens:'¡ALERTA! Zona de aliens hostiles.'
+        };
+        this.showDialogue(msgs[p.id]);
+    }
+    
+    showDialogue(txt) {
+        this.dialogueText.setText(txt);
+        this.dialogue.setVisible(true);
+        this.dialogueText.setVisible(true);
+        this.time.delayedCall(2500,()=>{
+            this.dialogue.setVisible(false);
+            this.dialogueText.setVisible(false);
+        });
+    }
+    
+    update() {
+        const spd = 180;
+        if(input.left) this.ship.setVelocityX(-spd);
+        else if(input.right) this.ship.setVelocityX(spd);
+        else this.ship.setVelocityX(0);
+        
+        if(input.up) this.ship.setVelocityY(-spd);
+        else if(input.down) this.ship.setVelocityY(spd);
+        else this.ship.setVelocityY(0);
+        
+        if(input.action) {
+            input.action=false;
+            // Shoot
+            let l = this.add.image(this.ship.x,this.ship.y-20,'laser');
+            l.setVelocityY(-400);
+            this.enemies.children.iterate(e=>{
+                if(e.active && Phaser.Math.Distance.Between(this.ship.x,this.ship.y,e.x,e.y)<100) {
+                    e.disableBody(true,true);
+                    this.gs.player.gold += 50;
+                    this.goldText.setText('GOLD: '+this.gs.player.gold);
+                }
+            });
+        }
+        
+        this.enemies.children.iterate(e=>{if(e.active)e.rotation+=0.02});
+    }
+}
+
+new Phaser.Game({
+    type:Phaser.AUTO,width:800,height:600,parent:'game-container',
+    scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
+    physics:{default:'arcade',arcade:{gravity:{y:0},debug:false}},
+    scene:[Boot,Title,Galaxy]
+});
+</script>
+</body>
+</html>

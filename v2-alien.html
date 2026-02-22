@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maria & The Robot Garden - V2: Alien</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:monospace}
+#game-container{border:4px solid #58a6ff;border-radius:8px}
+.controls{position:fixed;bottom:20px;display:flex;gap:10px}
+.btn{background:#58a6ff;color:#000;padding:15px 20px;border:none;border-radius:5px;font-size:16px;cursor:pointer}
+.btn:active{background:#388bfd}
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<div class="controls">
+<button class="btn" onclick="move('left')">←</button>
+<button class="btn" onclick="move('up')">↑</button>
+<button class="btn" onclick="move('down')">↓</button>
+<button class="btn" onclick="move('right')">→</button>
+<button class="btn" onclick="attack()">ATAQUE</button>
+</div>
+<script>
+// VERSION 2: Alien sprites
+class GameScene extends Phaser.Scene{
+constructor(){super({key:'GameScene'})}
+preload(){
+this.load.spritesheet('alien','https://labs.phaser.io/assets/sprites/alien.png',{frameWidth:32,frameHeight:32});
+this.load.image('baddie1','https://labs.phaser.io/assets/sprites/shmup-baddie1.png');
+this.load.image('baddie2','https://labs.phaser.io/assets/sprites/shmup-baddie2.png');
+this.load.image('baddie3','https://labs.phaser.io/assets/sprites/shmup-baddie3.png');
+this.load.image('boulder','https://labs.phaser.io/assets/sprites/boulder.png');
+this.load.image('grass','https://labs.phaser.io/assets/sprites/grass.png');
+this.load.image('diamond','https://labs.phaser.io/assets/sprites/diamond.png');
+this.load.image('bank','https://labs.phaser.io/assets/sprites/bank.png');
+this.load.image('metal','https://labs.phaser.io/assets/sprites/metal.png');
+}
+create(){
+this.add.tileSprite(400,300,800,600,'metal');
+const obstacles=this.physics.add.staticGroup();
+for(let i=0;i<8;i++){
+obstacles.create(Phaser.Math.Between(50,750),Phaser.Math.Between(50,550),'boulder');
+}
+this.player=this.physics.add.sprite(100,300,'alien',0);
+this.player.setCollideWorldBounds(true);
+this.physics.add.collider(this.player,obstacles);
+this.cursors=this.input.keyboard.createCursorKeys();
+this.baddies=this.physics.add.group();
+for(let i=0;i<6;i++){
+let b=this.baddies.create(Phaser.Math.Between(300,750),Phaser.Math.Between(50,550),'baddie'+Phaser.Math.Between(1,3));
+b.setCollideWorldBounds(true);
+b.setBounce(1);
+b.setVelocity(Phaser.Math.Between(-80,80),Phaser.Math.Between(-80,80));
+}
+this.diamonds=this.physics.add.group();
+for(let i=0;i<12;i++){
+let d=this.diamonds.create(Phaser.Math.Between(50,750),Phaser.Math.Between(50,550),'diamond');
+d.setBounceY(0.5);
+}
+this.physics.add.collider(this.diamonds,obstacles);
+this.physics.add.overlap(this.player,this.diamonds,this.collect,null,this);
+this.physics.add.collider(this.player,this.baddies,this.hit,null,this);
+this.score=0;
+this.lives=3;
+this.add.text(20,20,'DIAMANTES:',{fontSize:'20px',fill:'#58a6ff'});
+this.scoreText=this.add.text(140,20,'0',{fontSize:'20px',fill:'#fff'});
+this.add.text(20,50,'VIDAS:',{fontSize:'20px',fill:'#f85149'});
+this.livesText=this.add.text(100,50,this.lives,{fontSize:'20px',fill:'#fff'});
+this.msg=this.add.text(400,300,'',{fontSize:'28px',fill:'#fff',backgroundColor:'#000'}).setOrigin(0.5).setVisible(false);
+this.level=2;
+this.add.text(650,20,'V2:ALIEN',{fontSize:'14px',fill:'#8b949e'});
+}
+collect(player,diamond){
+diamond.disableBody(true,true);
+this.score+=50;
+this.scoreText.setText(this.score);
+this.cameras.main.shake(50,0.003);
+if(this.diamonds.countActive(true)===0){
+this.msg.setText('¡NIVEL '+this.level+' COMPLETO!').setVisible(true);
+this.level++;
+this.time.delayedCall(2000,()=>{
+this.scene.restart();
+});
+}
+}
+hit(player,baddie){
+this.cameras.main.shake(150,0.01);
+this.lives--;
+this.livesText.setText(this.lives);
+baddie.disableBody(true,true);
+if(this.lives<=0){
+this.msg.setText('GAME OVER').setVisible(true);
+this.physics.pause();
+this.time.delayedCall(2000,()=>this.scene.restart());
+}
+}
+update(){
+if(this.cursors.left.isDown)this.player.setVelocityX(-150);
+else if(this.cursors.right.isDown)this.player.setVelocityX(150);
+else this.player.setVelocityX(0);
+if(this.cursors.up.isDown)this.player.setVelocityY(-150);
+else if(this.cursors.down.isDown)this.player.setVelocityY(150);
+else this.player.setVelocityY(0);
+this.player.anims.play('walk',true);
+this.baddies.children.iterate(b=>{if(b.active){b.rotation+=0.02}});
+}
+}
+let config={type:Phaser.AUTO,width:800,height:600,parent:'game-container',physics:{default:'arcade',arcade:{gravity:{y:0},debug:false}},scene:[GameScene]};
+let game=new Phaser.Game(config);
+function move(dir){
+let s=game.scene.scenes[0];
+if(!s||!s.player)return;
+if(dir==='left')s.player.setVelocityX(-150);
+if(dir==='right')s.player.setVelocityX(150);
+if(dir==='up')s.player.setVelocityY(-150);
+if(dir==='down')s.player.setVelocityY(150);
+setTimeout(()=>{if(s.player)s.player.setVelocity(0,0)},150);
+}
+function attack(){
+let s=game.scene.scenes[0];
+if(!s||!s.player)return;
+let atk=s.add.circle(s.player.x+20,s.player.y,15,0xff0000,0.7);
+s.tweens.add({targets:atk,scale:2,alpha:0,duration:300,onComplete:()=>atk.destroy()});
+s.baddies.children.iterate(b=>{
+if(b.active&&Phaser.Math.Distance.Between(s.player.x,s.player.y,b.x,b.y)<100){
+b.disableBody(true,true);
+s.score+=100;
+s.scoreText.setText(s.score);
+}
+});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maria & The Robot Garden - V5: Retrowave</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a12;display:flex;justify-content:center;align-items:center;min-height:100vh}
+#game-container{border:4px solid #00fff5;border-radius:8px}
+.controls{position:fixed;bottom:20px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{background:linear-gradient(45deg,#00fff5,#ff00ff);color:#000;padding:15px 20px;border:none;border-radius:5px;font-size:14px;font-weight:bold}
+.btn:active{opacity:0.8}
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<div class="controls">
+<button class="btn" onclick="move('left')">←</button>
+<button class="btn" onclick="move('up')">↑</button>
+<button class="btn" onclick="move('down')">↓</button>
+<button class="btn" onclick="move('right')">→</button>
+<button class="btn" onclick="shoot()">LASER</button>
+<button class="btn" onclick="shield()">ESCUDO</button>
+</div>
+<script>
+// VERSION 5: Retrowave/Synthwave
+class RetroScene extends Phaser.Scene{
+constructor(){super({key:'RetroScene'})}
+preload(){
+this.load.image('knight','https://labs.phaser.io/assets/sprites/knight.png');
+this.load.image('slime','https://labs.phaser.io/assets/sprites/slime.png');
+this.load.image('wizkid','https://labs.phaser.io/assets/sprites/wizkid.png');
+this.load.image('metroid','https://labs.phaser.io/assets/sprites/metroid.png');
+this.load.image('maggot','https://labs.phaser.io/assets/sprites/maggot.png');
+this.load.image('frog','https://labs.phaser.io/assets/sprites/frog.png');
+this.load.image('ufo','https://labs.phaser.io/assets/sprites/ufo.png');
+this.load.image('laser','https://labs.phaser.io/assets/sprites/laser.png');
+this.load.image('ship','https://labs.phaser.io/assets/sprites/thrust_ship.png');
+}
+create(){
+this.add.tileSprite(400,300,800,600,'metroid');
+const cover=this.add.graphics();
+cover.fillStyle(0x0a0a12,0.7);
+cover.fillRect(0,0,800,600);
+const towers=this.physics.add.staticGroup();
+for(let i=0;i<10;i++){
+towers.create(Phaser.Math.Between(50,750),Phaser.Math.Between(50,550),'ufo');
+}
+this.player=this.physics.add.sprite(400,500,'ship');
+this.player.setCollideWorldBounds(true);
+this.cursors=this.input.keyboard.createCursorKeys();
+this.keys=this.input.keyboard.addKeys('SPACE');
+this.enemies=this.physics.add.group();
+for(let i=0;i<8;i++){
+let e=this.enemies.create(Phaser.Math.Between(100,700),Phaser.Math.Between(50,300),'maggot');
+e.setCollideWorldBounds(true);
+e.setBounce(1);
+e.setVelocity(Phaser.Math.Between(-60,60),Phaser.Math.Between(-60,60));
+}
+this.boss=this.physics.add.sprite(400,80,'wizkid');
+this.boss.setCollideWorldBounds(true);
+this.boss.setBounce(0.5);
+this.boss.setDrag(50);
+this.boss.setHealth(500);
+this.physics.add.collider(this.player,towers);
+this.physics.add.collider(this.enemies,towers);
+this.physics.add.collider(this.player,this.enemies,this.hitEnemy,null,this);
+this.physics.add.collider(this.player,this.boss,this.hitBoss,null,this);
+this.physics.add.collider(this.boss,towers);
+this.physics.add.collider(this.enemies,this.boss);
+this.score=0;
+this.level=1;
+this.add.text(20,20,'PUNTOS',{fontSize:'16px',fill:'#00fff5'});
+this.scoreText=this.add.text(20,40,'',{fontSize:'24px',fill:'#fff'});
+this.add.text(20,70,'BOSS',{fontSize:'16px',fill:'#ff00ff'});
+this.bossHealthBar=this.add.graphics();
+this.add.text(650,20,'V5:RETRO',{fontSize:'14px',fill:'#00fff5'});
+this.msg=this.add.text(400,300,'',{fontSize:'32px',fill:'#00fff5',stroke:'#ff00ff',strokeThickness:4}).setOrigin(0.5).setVisible(false);
+this.shieldActive=false;
+}
+hitEnemy(player,enemy){
+if(this.shieldActive)return;
+this.cameras.main.shake(80,0.008);
+this.score+=100;
+this.scoreText.setText(this.score);
+enemy.disableBody(true,true);
+this.cameras.main.flash(100,255,0,255);
+}
+hitBoss(player,boss){
+if(this.shieldActive)return;
+this.cameras.main.shake(150,0.015);
+this.player.setTint(0xff0000);
+this.time.delayedCall(500,()=>this.player.clearTint());
+}
+shoot(){
+let laser=this.physics.add.image(this.player.x,this.player.y-20,'laser');
+laser.setVelocityY(-400);
+laser.setAngularVelocity(200);
+this.physics.add.collider(laser,this.enemies,(l,e)=>{l.destroy();e.disableBody(true,true);this.score+=50;this.scoreText.setText(this.score)});
+this.physics.add.collider(laser,this.boss,(l,b)=>{l.destroy();b.setHealth(b.health-25);this.score+=25;this.scoreText.setText(this.score);if(b.health<=0){this.win()}});
+this.time.delayedCall(1500,()=>laser.destroy());
+}
+shield(){
+this.shieldActive=true;
+let shield=this.add.circle(this.player.x,this.player.y,40,0x00fff5,0.4);
+this.tweens.add({targets:shield,alpha:0,duration:2000,onComplete:()=>{shield.destroy();this.shieldActive=false}});
+}
+win(){
+this.boss.disableBody(true,true);
+this.msg.setText('¡VICTORIA!').setVisible(true);
+this.cameras.main.flash(500,0,255,255);
+this.time.delayedCall(3000,()=>this.scene.restart());
+}
+update(){
+if(this.cursors.left.isDown)this.player.setVelocityX(-200);
+else if(this.cursors.right.isDown)this.player.setVelocityX(200);
+else this.player.setVelocityX(0);
+if(this.cursors.up.isDown)this.player.setVelocityY(-200);
+else if(this.cursors.down.isDown)this.player.setVelocityY(200);
+else this.player.setVelocityY(0);
+this.player.rotation+=0.05;
+this.enemies.children.iterate(e=>{if(e.active)e.rotation+=0.02});
+if(this.boss.active){
+this.bossHealthBar.clear();
+this.bossHealthBar.fillStyle(0xff00ff,1);
+this.bossHealthBar.fillRect(60,68,this.boss.health*0.5,10);
+this.boss.setVelocityX(Phaser.Math.Between(-80,80));
+}
+}
+}
+let config={type:Phaser.AUTO,width:800,height:600,parent:'game-container',physics:{default:'arcade',arcade:{gravity:{y:0},debug:false}},scene:[RetroScene]};
+let game=new Phaser.Game(config);
+function move(dir){
+let s=game.scene.scenes[0];
+if(!s)return;
+if(dir==='left')s.player.setVelocityX(-200);
+if(dir==='right')s.player.setVelocityX(200);
+if(dir==='up')s.player.setVelocityY(-200);
+if(dir==='down')s.player.setVelocityY(200);
+setTimeout(()=>{if(s.player)s.player.setVelocity(0,0)},150);
+}
+function shoot(){
+let s=game.scene.scenes[0];
+if(s&&s.shoot)s.shoot();
+}
+function shield(){
+let s=game.scene.scenes[0];
+if(s&&s.shield)s.shield();
+}
+</script>
+</body>
+</html>

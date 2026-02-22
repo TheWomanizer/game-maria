@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maria & The Robot Garden - V3: Pacman</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;display:flex;justify-content:center;align-items:center;min-height:100vh}
+#game-container{border:4px solid #ffeb3b;border-radius:8px}
+.controls{position:fixed;bottom:20px;display:flex;gap:10px}
+.btn{background:#ffeb3b;color:#000;padding:15px 20px;border:none;border-radius:5px;font-size:16px;font-weight:bold}
+.btn:active{background:#ffd600}
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<div class="controls">
+<button class="btn" onclick="move('left')">←</button>
+<button class="btn" onclick="move('up')">↑</button>
+<button class="btn" onclick="move('down')">↓</button>
+<button class="btn" onclick="move('right')">→</button>
+</div>
+<script>
+// VERSION 3: Pacman style
+class PacmanScene extends Phaser.Scene{
+constructor(){super({key:'PacmanScene'})}
+preload(){
+this.load.spritesheet('pacman','https://labs.phaser.io/assets/sprites/pacman.png',{frameWidth:32,frameHeight:32});
+this.load.image('ghost','https://labs.phaser.io/assets/sprites/ghost.png');
+this.load.image('dot','https://labs.phaser.io/assets/sprites/dot.png');
+this.load.image('pill','https://labs.phaser.io/assets/sprites/pill.png');
+this.load.image('wall','https://labs.phaser.io/assets/sprites/wall.png');
+this.load.image('blue','https://labs.phaser.io/assets/sprites/blue.png');
+}
+create(){
+this.add.tileSprite(400,300,800,600,'blue');
+const walls=this.physics.add.staticGroup();
+const wallPositions=[[200,100],[600,100],[200,500],[600,500],[400,200],[400,400],[100,300],[700,300]];
+wallPositions.forEach(p=>walls.create(p[0],p[1],'wall'));
+this.player=this.physics.add.sprite(100,300,'pacman',0);
+this.player.setCollideWorldBounds(true);
+this.physics.add.collider(this.player,walls);
+this.cursors=this.input.keyboard.createCursorKeys();
+this.ghosts=this.physics.add.group();
+for(let i=0;i<4;i++){
+let g=this.ghosts.create(400+Phaser.Math.Between(-50,50),300+Phaser.Math.Between(-50,50),'ghost');
+g.setCollideWorldBounds(true);
+g.setBounce(1);
+g.setVelocity(Phaser.Math.Between(-100,100),Phaser.Math.Between(-100,100));
+}
+this.dots=this.physics.add.group();
+for(let x=50;x<750;x+=80){
+for(let y=50;y<550;y+=80){
+if(!this.physics.overlap(this.player,x,y,()=>true)){
+this.dots.create(x,y,'dot');
+}
+}
+}
+this.physics.add.collider(this.dots,walls);
+this.physics.add.overlap(this.player,this.dots,this.eatDot,null,this);
+this.physics.add.collider(this.player,this.ghosts,this.hitGhost,null,this);
+this.score=0;
+this.add.text(20,20,'PUNTOS:',{fontSize:'24px',fill:'#ffeb3b'});
+this.scoreText=this.add.text(130,20,'0',{fontSize:'24px',fill:'#fff'});
+this.add.text(600,20,'V3:PACMAN',{fontSize:'16px',fill:'#888'});
+this.msg=this.add.text(400,300,'',{fontSize:'32px',fill:'#ff0000',stroke:'#000',strokeThickness:4}).setOrigin(0.5).setVisible(false);
+this.time.addEvent({delay:100,callback:()=>{if(this.player.active)this.player.anims.play('munch',true)},loop:true});
+}
+eatDot(player,dot){
+dot.disableBody(true,true);
+this.score+=10;
+this.scoreText.setText(this.score);
+if(this.dots.countActive(true)===0){
+this.msg.setText('¡GANASTE!').setVisible(true);
+this.time.delayedCall(2000,()=>this.scene.restart());
+}
+}
+hitGhost(player,ghost){
+this.cameras.main.shake(100,0.02);
+this.score-=50;
+this.scoreText.setText(this.score);
+player.setTint(0xff0000);
+this.time.delayedCall(500,()=>player.clearTint());
+}
+update(){
+if(this.cursors.left.isDown){this.player.setVelocityX(-180);this.player.flipX=true}
+else if(this.cursors.right.isDown){this.player.setVelocityX(180);this.player.flipX=false}
+else this.player.setVelocityX(0);
+if(this.cursors.up.isDown)this.player.setVelocityY(-180);
+else if(this.cursors.down.isDown)this.player.setVelocityY(180);
+else this.player.setVelocityY(0);
+this.ghosts.children.iterate(g=>{if(g.active)g.rotation+=0.01});
+}
+}
+let config={type:Phaser.AUTO,width:800,height:600,parent:'game-container',physics:{default:'arcade',arcade:{gravity:{y:0},debug:false}},scene:[PacmanScene]};
+let game=new Phaser.Game(config);
+function move(dir){
+let s=game.scene.scenes[0];
+if(!s)return;
+if(dir==='left')s.player.setVelocityX(-180);
+if(dir==='right')s.player.setVelocityX(180);
+if(dir==='up')s.player.setVelocityY(-180);
+if(dir==='down')s.player.setVelocityY(180);
+setTimeout(()=>{if(s.player)s.player.setVelocity(0,0)},200);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maria & The Robot Garden - Mod: Pixel Love</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#ffeaa7;overflow:hidden;font-family:monospace}
+#game-container{width:100vw;height:100vh;display:flex;justify-content:center;align-items:center}
+.pixel-controls{position:fixed;bottom:20px;display:flex;gap:10px;z-index:100}
+.pixel-btn{background:#fff;border:4px solid #000;padding:15px 20px;font-size:16px;font-family:monospace;image-rendering:pixelated;box-shadow:4px 4px 0 #000}
+.pixel-btn:active{box-shadow:2px 2px 0 #000;transform:translate(2px,2px)}
+@media(min-width:768px){.pixel-controls{display:none}}
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<div class="pixel-controls">
+<button class="pixel-btn" ontouchstart="K.l=1" ontouchend="K.l=0">◄</button>
+<button class="pixel-btn" ontouchstart="K.u=1" ontouchend="K.u=0">▲</button>
+<button class="pixel-btn" ontouchstart="K.d=1" ontouchend="K.d=0">▼</button>
+<button class="pixel-btn" ontouchstart="K.r=1" ontouchend="K.r=0">►</button>
+<button class="pixel-btn" ontouchstart="K.a=1" ontouchend="K.a=0">A</button>
+</div>
+<script>
+// MOD 2: PIXEL LOVE - My custom mechanics
+let K={u:0,d:0,l:0,r:0,a:0};
+
+class LoveBoot extends Phaser.Scene{
+constructor(){super({key:'LoveBoot'})}
+preload(){
+// Using pixel art assets
+this.load.spritesheet('girl','https://labs.phaser.io/assets/sprites/dude.png',{frameWidth:32,frameHeight:48});
+this.load.image('heart','https://labs.phaser.io/assets/sprites/heart.png');
+this.load.image('flower','https://labs.phaser.io/assets/sprites/flower.png');
+this.load.image('sun','https://labs.phaser.io/assets/sprites/sun.png');
+this.load.image('cloud','https://labs.phaser.io/assets/sprites/cloud.png');
+this.load.image('frog','https://labs.phaser.io/assets/sprites/frog.png');
+this.load.image('panda','https://labs.phaser.io/assets/sprites/panda.png');
+this.load.image('pig','https://labs.phaser.io/assets/sprites/pig.png');
+this.load.image('Dude','https://labs.phaser.io/assets/sprites/dude.png');
+}
+create(){
+this.registry.set('loves',{maria:0,jose:0,celeste:0,robot:0});
+this.state={loves:{maria:0,jose:0,celeste:0,robot:0},gold:0,day:1};
+this.scene.start('LoveTitle',this.state);
+}
+}
+
+class LoveTitle extends Phaser.Scene{
+constructor(){super({key:'LoveTitle'})}
+init(d){this.s=d}
+create(){
+this.add.rectangle(400,300,800,600,0xffd9e6);
+// Hearts background
+for(let i=0;i<15;i++){
+let h=this.add.image(Phaser.Math.Between(50,750),Phaser.Math.Between(50,550),'heart');
+h.setTint(Phaser.Math.RND.pick([0xff6b9d,0xff69b4,0xff1493,0xffb6c1]));
+h.setAlpha(0.5);
+this.tweens.add({targets:h,y:h.y-50,alpha:0,duration:3000,repeat:-1,delay:i*200});
+}
+this.add.text(400,120,'MARIA & THE\nROBOT GARDEN',{fontFamily:'monospace',fontSize:'28px',color:'#e84393',align:'center'}).setOrigin(0.5);
+this.add.text(400,280,'~ Una historia de amor ~',{fontSize:'20px',color:'#2d3436'}).setOrigin(0.5);
+this.add.text(400,380,'>>> COMENZAR <<<',{fontSize:'22px',color:'#e84393'}).setOrigin(0.5);
+this.add.text(400,450,'Elige tu camino',{fontSize:'16px',color:'#636e72'}).setOrigin(0.5);
+this.add.text(400,550,'MOD 2: PIXEL LOVE',{fontSize:'12px',color:'#b2bec3'}).setOrigin(0.5);
+this.input.keyboard.on('keydown-ENTER',()=>this.scene.start('LoveWorld',this.s));
+}
+update(){if(K.a){K.a=0;this.scene.start('LoveWorld',this.s)}}
+}
+
+class LoveWorld extends Phaser.Scene{
+constructor(){super({key:'LoveWorld'})}
+init(d){this.s=d}
+create(){
+this.add.image(400,300,'sun');
+// Cute scenery
+for(let i=0;i<6;i++){this.add.image(Phaser.Math.Between(50,750),Phaser.Math.Between(50,200),'cloud')}
+for(let i=0;i<10;i++){this.add.image(Phaser.Math.Between(50,750),Phaser.Math.Between(300,550),'flower')}
+// Characters
+const chars=[
+{id:'maria',x:150,y:200,sprite:'girl',color:0xe84393,name:'Maria'},
+{id:'jose',x:650,y:200,sprite:'dude',color:0x3498db,name:'Jose'},
+{id:'celeste',x:150,y:450,sprite:'panda',color:0x9b59b6,name:'Celeste'},
+{id:'robot',x:650,y:450,sprite:'frog',color:0x2ecc71,name:'Robot'}
+];
+this.characters=[];
+chars.forEach(c=>{
+let ch=this.physics.add.sprite(c.x,c.y,c.sprite);
+ch.setInteractive();
+ch.id=c.id;
+ch.on('pointerdown',()=>this.talk(c));
+this.characters.push(ch);
+// Name tag
+this.add.text(c.x,c.y-40,c.name,{fontSize:'14px',color:'#'+c.color.toString(16)}).setOrigin(0.5);
+// Love bar
+this.add.rectangle(c.x,c.y-55,40,6,0xffffff).setStrokeStyle(1,0x000000);
+});
+// Player
+this.player=this.physics.add.sprite(400,300,'girl',0);
+this.player.setCollideWorldBounds(true);
+// Hearts to collect
+this.hearts=this.physics.add.group();
+for(let i=0;i<8;i++){
+let h=this.hearts.create(Phaser.Math.Between(50,750),Phaser.Math.Between(50,550),'heart');
+h.setBounceY(0.3);
+}
+this.physics.add.overlap(this.player,this.hearts,(p,h)=>{
+h.disableBody(true,true);
+this.s.gold+=10;
+});
+// UI
+this.add.rectangle(400,35,800,70,0xffffff,0.9);
+this.dayText=this.add.text(20,15,'Día '+this.s.day,{fontSize:'20px',color:'#2d3436'});
+this.goldText=this.add.text(20,45,'Corazones: '+this.s.gold,{fontSize:'20px',color:'#e84393'});
+// Dialogue
+this.dlg=this.add.rectangle(400,520,700,100,0xffffff,0.95).setStrokeStyle(4,0xe84393).setVisible(false);
+this.dlgTxt=this.add.text(70,500,'',{fontSize:'18px',color:'#2d3436',wordWrap:650}).setVisible(false);
+}
+talk(c){
+const msgs={
+maria:["¡Hola! Me alegra verte...","Eres especial para mí.","¿Pasaremos tiempo juntos?"],
+jose:["Te he estado esperando.","Mi corazón late más rápido.","¿Quieres caminar conmigo?"],
+celeste:["¡El amor es hermoso!","¡Son tan tiernos!","¡祝福! (Felicidades)"],
+robot:["BEEP BOOP... amor detectado","Sistema emocional: 100%","¿Qué es el amor?"]
+};
+let m=msgs[c.id][Phaser.Math.Between(0,2)];
+this.dlgTxt.setText(c.name+': '+m);
+this.dlg.setVisible(true);this.dlgTxt.setVisible(true);
+this.time.delayedCall(3000,()=>{this.dlg.setVisible(false);this.dlgTxt.setVisible(false)});
+}
+update(){
+const v=140;
+if(K.l)this.player.setVelocityX(-v);
+else if(K.r)this.player.setVelocityX(v);
+else this.player.setVelocityX(0);
+if(K.u)this.player.setVelocityY(-v);
+else if(K.d)this.player.setVelocityY(v);
+else this.player.setVelocityY(0);
+if(K.a){
+K.a=0;
+this.hearts.children.iterate(h=>{
+if(h.active&&Phaser.Math.Distance.Between(this.player.x,this.player.y,h.x,h.y)<50){
+h.disableBody(true,true);
+this.s.gold++;
+}
+});
+}
+this.goldText.setText('Corazones: '+this.s.gold);
+}
+}
+
+new Phaser.Game({
+type:Phaser.AUTO,width:800,height:600,parent:'game-container',
+scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
+physics:{default:'arcade',gravity:{y:0}},
+scene:[LoveBoot,LoveTitle,LoveWorld]
+});
+</script>
+</body>
+</html>

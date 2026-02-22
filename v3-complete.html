@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maria & The Robot Garden - Fantasy Edition</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=VT323&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#1a0a0a;overflow:hidden;font-family:'VT323',monospace}
+#game-container{width:100vw;height:100vh;display:flex;justify-content:center;align-items:center}
+.touch{position:fixed;bottom:15px;display:flex;gap:8px;z-index:100}
+.touch button{background:rgba(212,175,55,0.3);border:2px solid #d4af37;border-radius:8px;color:#d4af37;padding:12px 18px;font-size:20px}
+@media(min-width:768px){.touch{display:none}}
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<div class="touch">
+<button ontouchstart="k.left=true" ontouchend="k.left=false">←</button>
+<button ontouchstart="k.up=true" ontouchend="k.up=false">↑</button>
+<button ontouchstart="k.down=true" ontouchend="k.down=false">↓</button>
+<button ontouchstart="k.right=true" ontouchend="k.right=false">→</button>
+<button ontouchstart="k.a=true" ontouchend="k.a=false">A</button>
+</div>
+<script>
+// VERSION 3: FANTASY MEDIEVAL - External assets
+let k={up:false,down:false,left:false,right:false,a:false};
+
+class FantasyBoot extends Phaser.Scene{
+constructor(){super({key:'FantasyBoot'})}
+preload(){
+this.load.image('castle','https://labs.phaser.io/assets/skies/castle.png');
+this.load.image('knight','https://labs.phaser.io/assets/sprites/knight.png');
+this.load.image('slime','https://labs.phaser.io/assets/sprites/slime.png');
+this.load.image('dragon','https://labs.phaser.io/assets/sprites/dragon.png');
+this.load.image('sword','https://labs.phaser.io/assets/sprites/sword.png');
+this.load.image('shield','https://labs.phaser.io/assets/sprites/shield.png');
+this.load.image('potion','https://labs.phaser.io/assets/sprites/potion.png');
+this.load.image('chest','https://labs.phaser.io/assets/sprites/chest.png');
+this.load.image('skull','https://labs.phaser.io/assets/sprites/skull.png');
+this.load.image('wizard','https://labs.phaser.io/assets/sprites/wizard.png');
+this.load.image('dungeon','https://labs.phaser.io/assets/skies/dungeon.png');
+this.load.image('grass','https://labs.phaser.io/assets/sprites/grass.png');
+}
+create(){
+this.state={player:{hp:150,maxHp:150,mp:100,gold:0,level:1},inventory:{potions:5,elixirs:2}};
+this.scene.start('FantasyTitle',this.state);
+}
+}
+
+class FantasyTitle extends Phaser.Scene{
+constructor(){super({key:'FantasyTitle'})}
+init(d){this.s=d}
+create(){
+this.add.image(400,300,'castle');
+this.add.text(400,100,'MARIA & THE\nROBOT GARDEN',{fontFamily:'MedievalSharp',fontSize:'36px',color:'#d4af37',align:'center'}).setOrigin(0.5);
+const m=this.add.text(400,350,'■ NUEVA AVENTURA\n■ CONTINUAR\n■ DUNGEON\n■ CRÉDITOS',{fontFamily:'VT323',fontSize:'26px',color:'#fff',align:'center'}).setOrigin(0.5);
+this.add.text(400,550,'v3: Fantasy',{fontSize:'14px',color:'#888'}).setOrigin(0.5);
+this.opt=0;
+this.input.keyboard.on('keydown',(e)=>{
+if(e.key==='ArrowDown'){this.opt=(this.opt+1)%4;m.setText('■ NUEVA AVENTURA\n■ CONTINUAR\n■ DUNGEON\n■ CRÉDITOS')}
+if(e.key==='ArrowUp'){this.opt=(this.opt+3)%4;m.setText('■ NUEVA AVENTURA\n■ CONTINUAR\n■ DUNGEON\n■ CRÉDITOS')}
+if(e.key==='Enter'){this.scene.start('FantasyWorld',this.s)}
+});
+}
+update(){if(k.a){k.a=false;this.scene.start('FantasyWorld',this.s)}}
+}
+
+class FantasyWorld extends Phaser.Scene{
+constructor(){super({key:'FantasyWorld'})}
+init(d){this.s=d}
+create(){
+this.add.image(400,300,'grass');
+// Castle
+this.add.rectangle(150,150,100,80,0x8b7355).setStrokeStyle(4,0x5d4e37);
+this.add.rectangle(150,110,80,40,0xc0392b);
+// Tower
+this.add.rectangle(150,450,100,80,0x8b7355);
+this.add.rectangle(650,300,120,100,0x636e72);
+// Dungeon entrance
+this.add.rectangle(650,450,80,60,0x2d3436).setStrokeStyle(2,0x000);
+// Forest
+for(let i=0;i<8;i++){this.add.image(Phaser.Math.Between(50,200),Phaser.Math.Between(300,500),'slime')}
+// Player
+this.hero=this.physics.add.sprite(400,300,'knight');
+this.hero.setCollideWorldBounds(true);
+// NPCs
+const npcs=[{x:250,y:200,n:'Rey'},{x:550,y:250,n:'Maga'},{x:200,y:400,n:'Mercader'}];
+npcs.forEach(n=>{
+let npc=this.physics.add.sprite(n.x,n.y,'wizard');
+npc.setStatic(true);
+npc.setInteractive();
+npc.on('pointerdown',()=>this.dialogue(n.n+': ¡Bienvenido, viajero!'));
+});
+// Enemies
+this.enemies=this.physics.add.group();
+for(let i=0;i<5;i++){
+let e=this.enemies.create(Phaser.Math.Between(300,700),Phaser.Math.Between(150,450),'slime');
+e.setBounce(1);e.setCollideWorldBounds(true);e.setVelocity(Phaser.Math.Between(-40,40),Phaser.Math.Between(-40,40));
+}
+// UI
+this.add.rectangle(400,35,800,70,0x000,0.8);
+this.add.text(20,15,'HP: '+this.s.player.hp,{fontSize:'22px',color:'#e74c3c'});
+this.add.text(20,45,'MP: '+this.s.player.mp,{fontSize:'22px',color:'#3498db'});
+this.add.text(600,15,'ORO: '+this.s.player.gold,{fontSize:'22px',color:'#d4af37'});
+this.add.text(600,45,'NV: '+this.s.player.level,{fontSize:'22px',color:'#9b59b6'});
+// Chests
+this.chests=this.physics.add.group();
+for(let i=0;i<3;i++){
+let c=this.chests.create(Phaser.Math.Between(100,700),Phaser.Math.Between(100,450),'chest');
+c.setStatic(true);c.setInteractive();
+c.on('pointerdown',()=>{
+c.disableInteractive();
+this.s.player.gold+=100;
+this.dialogue('¡Encontraste 100 de oro!');
+});
+}
+this.dlgBox=this.add.rectangle(400,520,750,100,0x000,0.9).setVisible(false);
+this.dlgTxt=this.add.text(60,490,'',{fontSize:'20px',color:'#fff'}).setVisible(false);
+this.physics.add.collider(this.hero,this.enemies,(h,e)=>{
+this.cameras.main.shake(100,0.015);
+this.s.player.hp-=15;
+this.dialogue('¡Un slime te ataca! -15 HP');
+});
+}
+dialogue(txt){
+this.dlgTxt.setText(txt);this.dlgBox.setVisible(true);this.dlgTxt.setVisible(true);
+this.time.delayedCall(2500,()=>{this.dlgBox.setVisible(false);this.dlgTxt.setVisible(false)});
+}
+update(){
+const v=150;
+if(k.left)this.hero.setVelocityX(-v);else if(k.right)this.hero.setVelocityX(v);else this.hero.setVelocityX(0);
+if(k.up)this.hero.setVelocityY(-v);else if(k.down)this.hero.setVelocityY(v);else this.hero.setVelocityY(0);
+this.enemies.children.iterate(e=>{if(e.active)e.rotation+=0.03});
+if(k.a){k.a=false;this.scene.start('Dungeon',this.s)}
+}
+}
+
+class Dungeon extends Phaser.Scene{
+constructor(){super({key:'Dungeon'})}
+init(d){this.s=d}
+create(){
+this.add.image(400,300,'dungeon');
+this.dungeonLevel=1;
+this.add.text(400,50,'DUNGEON - Nivel '+this.dungeonLevel,{fontSize:'24px',color:'#e74c3c'}).setOrigin(0.5);
+this.boss=this.physics.add.sprite(400,150,'dragon');
+this.boss.setCollideWorldBounds(true);this.boss.setBounce(0.5);
+this.boss.hp=100;
+// Floor spikes
+for(let i=0;i<8;i++){
+let s=this.add.rectangle(Phaser.Math.Between(100,700),Phaser.Math.Between(250,500),30,30,0x8b0000);
+this.physics.add.existing(s,true);
+this.physics.add.collider(this.hero,s,()=>{this.s.player.hp-=20;this.cameras.main.shake(80,0.01)});
+}
+this.hero=this.physics.add.sprite(400,450,'knight');
+this.add.rectangle(400,35,800,70,0x000,0.8);
+this.hpTxt=this.add.text(20,15,'HP: '+this.s.player.hp,{fontSize:'22px',color:'#e74c3c'});
+this.input.keyboard.on('keydown-SPACE',()=>{
+let atk=this.add.rectangle(this.hero.x,this.hero.y-30,40,60,0xd4af37);
+this.tweens.add({targets:atk,alpha:0,duration:200,onComplete:()=>atk.destroy()});
+if(Phaser.Math.Distance.Between(this.hero.x,this.hero.y,this.boss.x,this.boss.y)<100){
+this.boss.hp-=20;this.cameras.main.shake(50,0.005);
+this.add.circle(this.boss.x,this.boss.y,30,0xff0000,0.5);
+}
+});
+}
+update(){
+const v=120;
+if(k.left)this.hero.setVelocityX(-v);else if(k.right)this.hero.setVelocityX(v);else this.hero.setVelocityX(0);
+if(k.up)this.hero.setVelocityY(-v);else if(k.down)this.hero.setVelocityY(v);else this.hero.setVelocityY(0);
+this.boss.rotation+=0.02;this.boss.x+=Math.sin(Date.now()/500)*2;
+this.hpTxt.setText('HP: '+this.s.player.hp);
+if(this.boss.hp<=0){
+this.add.text(400,300,'¡VICTORIA!',{fontSize:'48px',color:'#d4af37'}).setOrigin(0.5);
+this.time.delayedCall(3000,()=>this.scene.start('FantasyTitle',this.s));
+}
+}
+}
+
+new Phaser.Game({
+type:Phaser.AUTO,width:800,height:600,parent:'game-container',
+scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
+physics:{default:'arcade',gravity:{y:0}},
+scene:[FantasyBoot,FantasyTitle,FantasyWorld,Dungeon]
+});
+</script>
+</body>
+</html>

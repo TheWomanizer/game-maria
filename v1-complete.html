@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Maria & The Robot Garden - Complete RPG</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#0f0c29;overflow:hidden;touch-action:none;font-family:'VT323',monospace;user-select:none}
+#game-container{width:100vw;height:100vh;display:flex;justify-content:center;align-items:center}
+canvas{border-radius:0!important}
+/* Touch Controls */
+.touch-controls{position:fixed;bottom:20px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;pointer-events:none;z-index:100}
+.dpad{display:grid;grid-template-columns:repeat(3,50px);grid-template-rows:repeat(2,50px);gap:5px;pointer-events:auto}
+.dpad button{background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);border-radius:10px;color:#fff;font-size:24px;touch-action:manipulation}
+.dpad button:active{background:rgba(255,255,255,0.4)}
+.action-btns{display:flex;gap:10px;pointer-events:auto}
+.action-btns button{background:linear-gradient(45deg,#e94560,#ff6b9d);border:none;border-radius:10px;padding:15px 20px;color:#fff;font-family:'VT323',monospace;font-size:18px;touch-action:manipulation;animation:pulse 2s infinite}
+.action-btns button:active{transform:scale(0.95)}
+@keyframes pulse{0%,100%{box-shadow:0 0 10px #e94560}50%{box-shadow:0 0 20px #e94560}}
+@media(min-width:768px){.touch-controls{display:none}}
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<div class="touch-controls">
+<div class="dpad">
+<button></button><button onclick="input.up=true" ontouchstart="input.up=true" ontouchend="input.up=false">↑</button><button></button>
+<button onclick="input.left=true" ontouchstart="input.left=true" ontouchend="input.left=false">←</button>
+<button onclick="input.down=true" ontouchstart="input.down=true" ontouchend="input.down=false">↓</button>
+<button onclick="input.right=true" ontouchstart="input.right=true" ontouchend="input.right=false">→</button>
+</div>
+<div class="action-btns">
+<button onclick="input.action=true" ontouchstart="input.action=true" ontouchend="input.action=false">A</button>
+<button onclick="input.menu=true" ontouchstart="input.menu=true" ontouchend="input.menu=false">M</button>
+</div>
+</div>
+<script>
+// COMPLETE RPG WITH EXTERNAL ASSETS
+// Assets from labs.phaser.io
+
+const ASSETS = {
+    sprites: {
+        player: 'https://labs.phaser.io/assets/sprites/phaser-dude.png',
+        enemy: 'https://labs.phaser.io/assets/sprites/shmup-baddie2.png',
+        coin: 'https://labs.phaser.io/assets/sprites/star.png',
+        heart: 'https://labs.phaser.io/assets/sprites/diamond.png',
+        potion: 'https://labs.phaser.io/assets/sprites/potion.png',
+        slime: 'https://labs.phaser.io/assets/sprites/slime.png',
+        ghost: 'https://labs.phaser.io/assets/sprites/ghost.png',
+        chest: 'https://labs.phaser.io/assets/sprites/chest.png',
+        key: 'https://labs.phaser.io/assets/sprites/key.png',
+        ufo: 'https://labs.phaser.io/assets/sprites/ufo.png',
+        frog: 'https://labs.phaser.io/assets/sprites/frog.png',
+        knight: 'https://labs.phaser.io/assets/sprites/knight.png'
+    },
+    backgrounds: {
+        title: 'https://labs.phaser.io/assets/skies/space3.png',
+        world: 'https://labs.phaser.io/assets/skies/grassland.png',
+        battle: 'https://labs.phaser.io/assets/skies/cavern1.png',
+        dungeon: 'https://labs.phaser.io/assets/skies/darkstone.png'
+    }
+};
+
+let input = {up:false,down:false,left:false,right:false,action:false,menu:false};
+
+class BootScene extends Phaser.Scene {
+    constructor() { super({key:'BootScene'}); }
+    preload() {
+        // Load all assets
+        Object.values(ASSETS.sprites).forEach(url => this.load.image(url.split('/').pop(), url));
+        Object.values(ASSETS.backgrounds).forEach(url => this.load.image(url.split('/').pop(), url));
+        this.load.spritesheet('dude', 'https://labs.phaser.io/assets/sprites/dude.png',{frameWidth:32,frameHeight:48});
+        this.load.spritesheet('alien', 'https://labs.phaser.io/assets/sprites/alien.png',{frameWidth:32,frameHeight:32});
+        this.load.audio('bgm',['https://labs.phaser.io/audio/bgm/town_theme.mp3']);
+        this.load.audio('hit','https://labs.phaser.io/audio/SoundEffects/hit.wav');
+        this.load.audio('coin','https://labs.phaser.io/audio/SoundEffects/ding.wav');
+    }
+    create() {
+        // Create animations
+        this.anims.create({key:'walk',frames:this.anims.generateFrameNumbers('dude',{start:0,end:9}),frameRate:10,repeat:-1});
+        this.anims.create({key:'idle',frames:[{key:'dude',frame:0}],frameRate:10});
+        this.anims.create({key:'attack',frames:this.anims.generateFrameNumbers('alien',{start:0,end:5}),frameRate:15});
+        
+        // Game state
+        this.gameState = {
+            player: {hp:100,maxHp:100,mp:50,maxMp:50,gold:0,exp:0,level:1,xpToNext:100},
+            inventory: {potions:2,keys:1},
+            locations: {church:false,arcade:false,robot:false,house:false,ranch:false},
+            story: {metJose:false,metCeleste:false,foundRobot:false},
+            battleWins:0,
+            quests: []
+        };
+        
+        this.scene.start('TitleScene', this.gameState);
+    }
+}
+
+class TitleScene extends Phaser.Scene {
+    constructor() { super({key:'TitleScene'}); }
+    init(data) { this.gameState = data; }
+    create() {
+        this.add.image(400,300,'space3');
+        
+        // Title
+        const title = this.add.text(400,150,'MARIA & THE\nROBOT GARDEN',{
+            fontFamily:'"Press Start 2P"',fontSize:'28px',color:'#ff6b9d',align:'center'
+        }).setOrigin(0.5);
+        
+        // Animated title
+        this.tweens.add({targets:title,scale:1.05,duration:1000,yoyo:true,repeat:-1});
+        
+        // Menu
+        this.menuItems = ['NUEVO JUEGO','CONTINUAR','OPCIONES','CREDITOS'];
+        this.menuIndex = 0;
+        this.menuTexts = [];
+        
+        this.menuItems.forEach((item,i) => {
+            let t = this.add.text(400,300 + i*50,item,{
+                fontFamily:'"VT323"',fontSize:'32px',color:i===0?'#ffd700':'#ffffff'
+            }).setOrigin(0.5);
+            this.menuTexts.push(t);
+        });
+        
+        this.add.text(400,550,'Version 1: Phaser Edition',{fontSize:'14px',color:'#666'}).setOrigin(0.5);
+        
+        // Input
+        this.input.keyboard.on('keydown-UP',()=>this.moveMenu(-1));
+        this.input.keyboard.on('keydown-DOWN',()=>this.moveMenu(1));
+        this.input.keyboard.on('keydown-ENTER',()=>this.selectMenu());
+        this.input.on('pointerdown',()=>this.selectMenu());
+    }
+    
+    moveMenu(dir) {
+        this.menuTexts[this.menuIndex].setColor('#ffffff');
+        this.menuIndex = (this.menuIndex + dir + 4) % 4;
+        this.menuTexts[this.menuIndex].setColor('#ffd700');
+    }
+    
+    selectMenu() {
+        if(this.menuIndex === 0) {
+            this.cameras.main.flash(500);
+            this.time.delayedCall(500,()=>this.scene.start('WorldScene',this.gameState));
+        }
+    }
+    
+    update() {
+        if(input.up) { input.up=false; this.moveMenu(-1); }
+        if(input.down) { input.down=false; this.moveMenu(1); }
+        if(input.action) { input.action=false; this.selectMenu(); }
+    }
+}
+
+class WorldScene extends Phaser.Scene {
+    constructor() { super({key:'WorldScene'}); }
+    init(data) { this.gameState = data; }
+    
+    create() {
+        this.add.image(400,300,'grassland');
+        
+        // World map with buildings
+        const buildings = [
+            {id:'church',x:150,y:150,name:'Iglesia',color:0xf5f5f5},
+            {id:'arcade',x:650,y:150,name:'Arcade',color:0x9b59b6},
+            {id:'robot',x:150,y:450,name:'Robot',color:0x3498db},
+            {id:'house',x:400,y:500,name:'Casa',color:0xe74c3c},
+            {id:'ranch',x:650,y:450,name:'Rancho',color:0x2ecc71}
+        ];
+        
+        this.buildings = [];
+        buildings.forEach(b => {
+            let rect = this.add.rectangle(b.x,b.y,80,60,b.color);
+            let label = this.add.text(b.x,b.y,b.name,{fontSize:'14px',color:'#000'}).setOrigin(0.5);
+            rect.setInteractive();
+            rect.on('pointerdown',()=>this.enterLocation(b.id));
+            this.buildings.push(rect);
+        });
+        
+        // Player
+        this.player = this.physics.add.sprite(400,300,'dude',0);
+        this.player.setCollideWorldBounds(true);
+        
+        // NPCs
+        this.npcs = this.physics.add.group();
+        let npc1 = this.npcs.create(300,200,'knight');
+        npc1.setInteractive();
+        npc1.npcId = 'jose';
+        npc1.setCollideWorldBounds(true);
+        
+        // Collision
+        this.physics.add.collider(this.player,this.buildings);
+        
+        // UI
+        this.uiBg = this.add.rectangle(400,40,800,80,0x000000,0.7);
+        this.hpText = this.add.text(20,20,'HP: '+this.gameState.player.hp,{fontSize:'20px',color:'#e74c3c'});
+        this.mpText = this.add.text(20,50,'MP: '+this.gameState.player.mp,{fontSize:'20px',color:'#3498db'});
+        this.goldText = this.add.text(600,20,'ORO: '+this.gameState.player.gold,{fontSize:'20px',color:'#ffd700'});
+        this.levelText = this.add.text(600,50,'NIVEL: '+this.gameState.player.level,{fontSize:'20px',color:'#9b59b6'});
+        
+        // Minimap
+        this.minimap = this.add.rectangle(750,550,60,60,0x000000,0.5).setStrokeStyle(2,0xffffff);
+        
+        // Battle zones
+        this.battleZones = this.physics.add.group();
+        for(let i=0;i<5;i++) {
+            let zone = this.battleZones.create(Phaser.Math.Between(100,700),Phaser.Math.Between(100,500));
+            zone.setAlpha(0);
+        }
+        
+        this.physics.add.overlap(this.player,this.battleZones,()=>{
+            if(Phaser.Math.Between(0,100) < 5) this.scene.start('BattleScene',this.gameState);
+        });
+        
+        this.physics.add.overlap(this.player,this.npcs,(p,npc)=>{
+            this.showDialogue(npc.npcId);
+        });
+        
+        this.dialogueBox = this.add.rectangle(400,500,700,120,0x000000,0.9).setStrokeStyle(4,0xffffff).setVisible(false);
+        this.dialogueText = this.add.text(60,460,'',{fontSize:'20px',color:'#fff',wordWrap:650}).setVisible(false);
+    }
+    
+    enterLocation(id) {
+        let messages = {
+            church: "Bienvenido a la iglesia. Ora por tu alma...",
+            arcade: "El arcade está cerrado por mantenimiento.",
+            robot: "El robot no responde. Necesita energía.",
+            house: "Esta es tu casa. Puedes descansar aquí.",
+            ranch: "Hay animales felices en el rancho."
+        };
+        this.showMessage(messages[id]);
+    }
+    
+    showDialogue(npcId) {
+        let dialogues = {
+            jose: "¡Hola! Soy José. Te he estado esperando...",
+            celeste: "Soy Celeste. ¡El amor está en el aire!"
+        };
+        this.dialogueText.setText(dialogues[npcId] || "...");
+        this.dialogueBox.setVisible(true);
+        this.dialogueText.setVisible(true);
+        this.time.delayedCall(3000,()=>{
+            this.dialogueBox.setVisible(false);
+            this.dialogueText.setVisible(false);
+        });
+    }
+    
+    showMessage(msg) {
+        this.dialogueText.setText(msg);
+        this.dialogueBox.setVisible(true);
+        this.dialogueText.setVisible(true);
+        this.time.delayedCall(2000,()=>{
+            this.dialogueBox.setVisible(false);
+            this.dialogueText.setVisible(false);
+        });
+    }
+    
+    update() {
+        const speed = 160;
+        
+        if(this.cursors = this.input.keyboard.createCursorKeys()) {
+            if(this.cursors.left.isDown || input.left) this.player.setVelocityX(-speed);
+            else if(this.cursors.right.isDown || input.right) this.player.setVelocityX(speed);
+            else this.player.setVelocityX(0);
+            
+            if(this.cursors.up.isDown || input.up) this.player.setVelocityY(-speed);
+            else if(this.cursors.down.isDown || input.down) this.player.setVelocityY(speed);
+            else this.player.setVelocityY(0);
+            
+            if(this.player.body.velocity.x !== 0) this.player.anims.play('walk',true);
+            else this.player.anims.play('idle');
+        }
+        
+        if(input.menu) { input.menu=false; this.scene.start('BattleScene',this.gameState); }
+        
+        // Update UI
+        this.hpText.setText('HP: '+this.gameState.player.hp);
+        this.mpText.setText('MP: '+this.gameState.player.mp);
+        this.goldText.setText('ORO: '+this.gameState.player.gold);
+    }
+}
+
+class BattleScene extends Phaser.Scene {
+    constructor() { super({key:'BattleScene'}); }
+    init(data) { this.gameState = data; }
+    
+    create() {
+        this.add.image(400,300,'cavern1');
+        
+        // Battle UI
+        this.add.rectangle(400,80,780,100,0x000000,0.8);
+        
+        // Enemy
+        this.enemy = this.physics.add.sprite(400,200,'shmup-baddie2');
+        this.enemy.setCollideWorldBounds(true);
+        
+        // Player battle sprite
+        this.playerSprite = this.add.sprite(400,400,'dude',0);
+        
+        // HP Bars
+        this.enemyHpBar = this.add.graphics();
+        this.enemyMaxHp = 100;
+        this.enemyHp = 100;
+        
+        // Battle menu
+        this.battleMenu = ['ATACAR','MAGIA','ITEM','HUIR'];
+        this.battleIndex = 0;
+        this.battleTexts = [];
+        
+        this.battleMenu.forEach((item,i) => {
+            let t = this.add.text(50 + i*180,30,item,{
+                fontSize:'24px',color:i===0?'#ffd700':'#fff'
+            });
+            this.battleTexts.push(t);
+        });
+        
+        // Battle log
+        this.battleLog = this.add.text(50,530,'¡Combate started!',{fontSize:'18px',color:'#ffff00'});
+        
+        // Effects
+        this.input.keyboard.on('keydown-LEFT',()=>this.moveBattleMenu(-1));
+        this.input.keyboard.on('keydown-RIGHT',()=>this.moveBattleMenu(1));
+        this.input.keyboard.on('keydown-ENTER',()=>this.executeBattleAction());
+    }
+    
+    moveBattleMenu(dir) {
+        this.battleTexts[this.battleIndex].setColor('#fff');
+        this.battleIndex = (this.battleIndex + dir + 4) % 4;
+        this.battleTexts[this.battleIndex].setColor('#ffd700');
+    }
+    
+    executeBattleAction() {
+        const actions = [()=>this.attack(),()=>this.magic(),()=>this.useItem(),()=>this.flee()];
+        actions[this.battleIndex]();
+    }
+    
+    attack() {
+        // Player attack animation
+        this.cameras.main.shake(100,0.01);
+        this.enemyHp -= 25;
+        
+        // Hit effect
+        let hit = this.add.circle(400,200,30,0xff0000,0.7);
+        this.tweens.add({targets:hit,alpha:0,scale:2,duration:300,onComplete:()=>hit.destroy()});
+        
+        this.battleLog.setText('¡Daño 25! El enemigo contraataca...');
+        
+        this.time.delayedCall(1000,()=>this.enemyTurn());
+    }
+    
+    magic() {
+        if(this.gameState.player.mp >= 10) {
+            this.gameState.player.mp -= 10;
+            this.enemyHp -= 40;
+            this.battleLog.setText('¡Magia de fuego! Daño 40...');
+            this.cameras.main.flash(200,255,0,0);
+            this.time.delayedCall(1000,()=>this.enemyTurn());
+        } else {
+            this.battleLog.setText('¡MP insuficiente!');
+        }
+    }
+    
+    useItem() {
+        if(this.gameState.inventory.potions > 0) {
+            this.gameState.inventory.potions--;
+            this.gameState.player.hp = Math.min(this.gameState.player.hp + 50,this.gameState.player.maxHp);
+            this.battleLog.setText('¡Usaste poción! +50 HP');
+            this.time.delayedCall(1000,()=>this.enemyTurn());
+        } else {
+            this.battleLog.setText('¡No tienes pociones!');
+        }
+    }
+    
+    flee() {
+        if(Phaser.Math.Between(0,100) < 50) {
+            this.battleLog.setText('¡Escapaste!');
+            this.time.delayedCall(1000,()=>this.scene.start('WorldScene',this.gameState));
+        } else {
+            this.battleLog.setText('¡No pudiste escapar!');
+            this.time.delayedCall(1000,()=>this.enemyTurn());
+        }
+    }
+    
+    enemyTurn() {
+        this.cameras.main.shake(150,0.015);
+        let dmg = Phaser.Math.Between(10,20);
+        this.gameState.player.hp -= dmg;
+        
+        let hit = this.add.circle(400,400,30,0xff0000,0.7);
+        this.tweens.add({targets:hit,alpha:0,scale:2,duration:300,onComplete:()=>hit.destroy()});
+        
+        this.battleLog.setText('¡El enemigo ataca! -'+dmg+' HP');
+        
+        if(this.gameState.player.hp <= 0) {
+            this.time.delayedCall(1000,()=>this.gameOver());
+        }
+    }
+    
+    gameOver() {
+        this.add.rectangle(400,300,800,600,0x000000,0.9);
+        this.add.text(400,250,'GAME OVER',{fontSize:'64px',color:'#e74c3c'}).setOrigin(0.5);
+        this.add.text(400,350,'Presiona ENTER para continuar',{fontSize:'24px',color:'#fff'}).setOrigin(0.5);
+        
+        this.input.keyboard.once('keydown-ENTER',()=>{
+            this.gameState.player.hp = this.gameState.player.maxHp;
+            this.scene.start('TitleScene',this.gameState);
+        });
+    }
+    
+    update() {
+        // Draw enemy HP bar
+        this.enemyHpBar.clear();
+        this.enemyHpBar.fillStyle(0xe74c3c,1);
+        this.enemyHpBar.fillRect(200,50,this.enemyHp*3,20);
+        this.enemyHpBar.fillStyle(0xffffff,1);
+        this.enemyHpBar.strokeRect(200,50,300,20);
+        
+        // Enemy rotation
+        this.enemy.rotation += 0.02;
+        
+        if(input.action) {
+            input.action=false;
+            this.executeBattleAction();
+        }
+    }
+}
+
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    parent: 'game-container',
+    scale: {mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},
+    physics: {default:'arcade',arcade:{gravity:{y:0},debug:false}},
+    scene: [BootScene,TitleScene,WorldScene,BattleScene]
+};
+
+new Phaser.Game(config);
+</script>
+</body>
+</html>
