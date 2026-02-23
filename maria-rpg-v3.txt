@@ -1,0 +1,23 @@
+=================================================================
+MARIA & THE ROBOT GARDEN - VERSION 3 (Desert)
+=================================================================
+ASSETS: Phaser Labs + Tema desierto
+
+Sprites diferentes:
+- cactus.png (decoracion)
+- skull.png, bones.png (esqueleto)
+- pig.png (NPC Celeste)
+- ghost.png (NPC Robot)
+- darkstone.png (iglesia)
+- hotline.png (arcade)
+- diamond.png (altar)
+
+Backgrounds:
+- desert.png (titulo)
+- cavern1.png (mundo)
+- darkstone.png (iglesia)
+
+MISMAS MECANICAS QUE V1 (código reutilizado)
+Solo cambian assets y colores (naranja/tema desierto)
+
+=================================================================

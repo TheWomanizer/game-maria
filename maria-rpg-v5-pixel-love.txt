@@ -1,0 +1,30 @@
+=================================================================
+MARIA & THE ROBOT GARDEN - MOD 2: PIXEL LOVE
+=================================================================
+ASSETS: Phaser Labs + MOD PROPIO
+
+Sprites:
+- heart.png, flower.png (items amor)
+- panda.png, pig.png, frog.png (NPCs)
+- heart.png (UI)
+
+MODIFICACIONES PROPIAS:
+1. Sistema de CORAZONES (love meter)
+2. Menu de AMOR (ver estado con personajes)
+3. Sistema de CITAS (date system)
+   - Cita con Jose (10 corazones)
+   - Cita con Celeste (15 corazones)
+   - Cita con Robot (5 corazones)
+4. Coleccion de corazones en el mapa
+5. Contador de DIAS
+6. Efectos de corazon flotante
+7. Colores rosa/pastel
+
+MECANICAS NUEVAS AGREGADAS:
+- Recoleccion de corazones (click/enemigos)
+- Citas aumentan love meter
+- Nuevo minijuego: ganar corazones
+
+CONTROLES: WASD + A
+
+=================================================================

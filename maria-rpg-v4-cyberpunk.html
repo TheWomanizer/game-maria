@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Maria & The Robot Garden - Mod: Cyberpunk</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#0a0a12;overflow:hidden;touch-action:none;font-family:'VT323',monospace;user-select:none}
+#game-container{width:100vw;height:100vh;display:flex;justify-content:center;align-items:center}
+.cyber-controls{position:fixed;bottom:20px;display:flex;gap:10px;z-index:100}
+.cyber-btn{background:linear-gradient(180deg,#00fff5,#0088ff);border:2px solid #00fff5;color:#000;padding:15px 20px;font-size:16px;font-weight:bold;border-radius:0;box-shadow:0 0 15px #00fff5}
+.cyber-btn:active{background:linear-gradient(180deg,#00cccc,#0066cc)}
+@media(min-width:768px){.cyber-controls{display:none}}
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<div class="cyber-controls">
+<button class="cyber-btn" ontouchstart="keys.left=1" ontouchend="keys.left=0">◄</button>
+<button class="cyber-btn" ontouchstart="keys.up=1" ontouchend="keys.up=0">▲</button>
+<button class="cyber-btn" ontouchstart="keys.down=1" ontouchend="keys.down=0">▼</button>
+<button class="cyber-btn" ontouchstart="keys.right=1" ontouchend="keys.right=0">►</button>
+<button class="cyber-btn" ontouchstart="keys.z=1" ontouchend="keys.z=0">Z</button>
+</div>
+<script>
+// MOD 1: CYBERPUNK - Custom mechanics added
+let keys={up:0,down:0,left:0,right:0,z:0};
+
+class BootScene extends Phaser.Scene {
+    constructor() { super({key:'BootScene'}); }
+    preload() {
+        this.load.image('title_bg', 'https://labs.phaser.io/assets/skies/neon.png');
+        this.load.image('world_grass', 'https://labs.phaser.io/assets/skies/tox.png');
+        this.load.image('house', 'https://labs.phaser.io/assets/sprites/bank.png');
+        this.load.image('neon1', 'https://labs.phaser.io/assets/sprites/crate32.png');
+        this.load.image('neon2', 'https://labs.phaser.io/assets/sprites/shmup-baddie1.png');
+        
+        this.load.spritesheet('player', 'https://labs.phaser.io/assets/sprites/dude.png', {frameWidth:32, frameHeight:48});
+        this.load.image('npc_jose', 'https://labs.phaser.io/assets/sprites/cyborg.png');
+        this.load.image('npc_celeste', 'https://labs.phaser.io/assets/sprites/mech.png');
+        this.load.image('npc_robot', 'https://labs.phaser.io/assets/sprites/probe.png');
+        
+        this.load.image('church_bg', 'https://labs.phaser.io/assets/skies/neon.png');
+        this.load.image('altar', 'https://labs.phaser.io/assets/sprites/diamond.png');
+        
+        this.load.image('arcade_bg', 'https://labs.phaser.io/assets/skies/hotline.png');
+        this.load.image('machine', 'https://labs.phaser.io/assets/sprites/bank.png');
+        
+        this.load.spritesheet('fighter1', 'https://labs.phaser.io/assets/sprites/alien.png', {frameWidth:32, frameHeight:32});
+        this.load.image('fighter2', 'https://labs.phaser.io/assets/sprites/shmup-baddie2.png');
+        this.load.image('laser', 'https://labs.phaser.io/assets/sprites/laser.png');
+        
+        this.load.image('heart', 'https://labs.phaser.io/assets/sprites/heart.png');
+        this.load.image('coin', 'https://labs.phaser.io/assets/sprites/star.png');
+    }
+    create() {
+        this.anims.create({key: 'player_walk', frames: this.anims.generateFrameNumbers('player', {start:0, end:9}), frameRate: 10, repeat: -1});
+        this.anims.create({key: 'player_idle', frames: [{key:'player', frame:0}], frameRate: 10});
+        // CUSTOM: Energy system added to gameState
+        this.gameState = {player:{hp:200,maxHp:200,energy:150,maxEnergy:150,credits:500,level:1},upgrades:{damage:1.0,speed:1.0,shield:0},inventory:{potions:2,keys:1},locations:{church:false,arcade:false,robot:false,house:false,ranch:false},story:{metJose:false,metCeleste:false,foundRobot:false,enteredChurch:false,playedArcade:false},battleWins:0,battleLosses:0,combo:0};
+        this.registry.set('gameState', this.gameState);
+        this.scene.start('TitleScene');
+    }
+}
+
+class TitleScene extends Phaser.Scene {
+    constructor() { super({key:'TitleScene'}); }
+    create() {
+        this.add.image(400, 300, 'title_bg');
+        // Scanline effect
+        for(let i=0;i<20;i++){
+            let l=this.add.rectangle(400,i*30,800,2,0x00fff5,0.1);
+            this.tweens.add({targets:l,alpha:0,repeat:-1,yoyo:true,duration:500});
+        }
+        this.add.text(400, 150, 'MARIA & THE\nROBOT GARDEN', {fontFamily:'"VT323"',fontSize:'32px',color:'#00fff5',align:'center'}).setOrigin(0.5);
+        this.add.text(400, 280, '>> CYBERPUNK MOD <<', {fontSize:'20px',color:'#ff00ff'}).setOrigin(0.5);
+        this.add.text(400, 330, 'Sistema de ENERGIA', {fontSize:'16px',color:'#00ffff'}).setOrigin(0.5);
+        this.add.text(400, 360, 'Creditos & Upgrades', {fontSize:'16px',color:'#ffff00'}).setOrigin(0.5);
+        
+        const opts = ['INICIAR','ARCADE','MEJORAS','CREDITOS'];
+        this.opt = 0;
+        this.optTexts = [];
+        opts.forEach((o,i)=>{
+            let t=this.add.text(400,420+i*35,o,{fontSize:'24px',color:i===0?'#00ff00':'#ffffff'}).setOrigin(0.5);
+            this.optTexts.push(t);
+        });
+        
+        this.add.text(400, 550, 'MOD 1: CYBERPUNK', {fontSize:'14px',color:'#666'}).setOrigin(0.5);
+        
+        this.input.keyboard.on('keydown-UP',()=>{this.opt=(this.opt+3)%4;this.updateMenu();});
+        this.input.keyboard.on('keydown-DOWN',()=>{this.opt=(this.opt+1)%4;this.updateMenu();});
+        this.input.keyboard.on('keydown-ENTER',()=>this.select());
+    }
+    updateMenu(){this.optTexts.forEach((t,i)=>t.setColor(i===this.opt?'#00ff00':'#ffffff'));}
+    select(){
+        const state=this.registry.get('gameState');
+        if(this.opt===0){this.cameras.main.flash(200,0,255,245);this.time.delayedCall(200,()=>this.scene.start('WorldScene',state));}
+        else if(this.opt===1){this.scene.start('ArcadeLobby',state);}
+        else if(this.opt===2){this.scene.start('UpgradeShop',state);}
+        else if(this.opt===3){this.scene.start('CreditsScene');}
+    }
+    update(){if(keys.z){keys.z=0;this.select();}}
+}
+
+class WorldScene extends Phaser.Scene {
+    constructor() { super({key:'WorldScene'}); }
+    init(data){this.gameState=data||this.registry.get('gameState');}
+    create() {
+        this.add.image(400, 300, 'world_grass');
+        // Neon buildings
+        for(let i=0;i<6;i++){let b=this.add.rectangle(100+i*120,150+Math.random()*100,60,100+Math.random()*50,0x1a1a2e,0.8).setStrokeStyle(2,0x00fff5);}
+        
+        const locations=[
+            {id:'robot',x:150,y:150,name:'CYBER LAB',color:0x00ffff,sprite:'npc_robot'},
+            {id:'ranch',x:150,y:450,name:'DATA RANCH',color:0xff00ff,sprite:'npc_celeste'},
+            {id:'arcade',x:650,y:150,name:'NET ARCADE',color:0xffff00,sprite:'machine'},
+            {id:'church',x:650,y:450,name:'DATA CHURCH',color:0x00ff00,sprite:'altar'},
+            {id:'house',x:400,y:300,name:'HOME NODE',color:0xff6600,sprite:'house'}
+        ];
+        
+        locations.forEach(loc=>{
+            let b=this.add.rectangle(loc.x,loc.y,80,60,loc.color).setStrokeStyle(3,0xffffff).setInteractive();
+            b.on('pointerdown',()=>this.enterLocation(loc));
+            this.add.text(loc.x,loc.y+45,loc.name,{fontSize:'12px',color:'#000',backgroundColor:'#00fff5'}).setOrigin(0.5);
+            if(loc.sprite){let n=this.add.image(loc.x,loc.y-20,loc.sprite).setInteractive();n.on('pointerdown',()=>this.talkToNPC(loc.id));}
+        });
+        
+        this.player=this.physics.add.sprite(400,300,'player',0).setCollideWorldBounds(true);
+        
+        // CUSTOM: HP + Energy bars
+        this.add.rectangle(400,30,800,60,0x000,0.9);
+        this.hpBar=this.add.graphics();
+        this.energyBar=this.add.graphics();
+        this.creditsText=this.add.text(650,10,'CREDITS: '+this.gameState.player.credits,{fontSize:'18px',color:'#00fff5'});
+        this.levelText=this.add.text(650,40,'LEVEL: '+this.gameState.player.level,{fontSize:'18px',color:'#ff00ff'});
+        
+        this.dialogueBox=this.add.rectangle(400,520,750,120,0x000,0.9).setStrokeStyle(4,0x00fff5).setVisible(false);
+        this.dialogueText=this.add.text(60,480,'',{fontSize:'18px',color:'#fff',wordWrap:700}).setVisible(false);
+        this.dialogueOpen=false;
+    }
+    enterLocation(loc){
+        const msgs={robot:"CYBER LAB: Sistema robotico detectado.",ranch:"DATA RANCH: Procesando datos...",arcade:"NET ARCADE: Conectando...",church:"DATA CHURCH: subroutine de oracion.",house:"HOME NODE: Recarga completada."};
+        this.gameState.locations[loc.id]=true;
+        if(loc.id==='house'){this.gameState.player.hp=this.gameState.player.maxHp;this.gameState.player.energy=this.gameState.player.maxEnergy;this.showDialogue("RECARGA COMPLETA! HP + ENERGY");return;}
+        if(loc.id==='arcade'&&keys.z){this.scene.start('ArcadeLobby',this.gameState);return;}
+        this.showDialogue(msgs[loc.id]);
+    }
+    talkToNPC(npcId){
+        const d={robot:["BEEP BOOP... Sistema online.","JARVIS v2.0 funcionando.","Energia al 100%."],celeste:"ANALISIS: Eres un usuario valioso.",jose:"BIENVENIDO AL SISTEMA."};
+        this.showDialogue(npcId.toUpperCase()+': "'+(d[npcId]||"...")+'"');
+    }
+    showDialogue(text){this.dialogueText.setText(text);this.dialogueBox.setVisible(true);this.dialogueText.setVisible(true);this.dialogueOpen=true;this.time.delayedCall(3000,()=>{this.dialogueBox.setVisible(false);this.dialogueText.setVisible(false);this.dialogueOpen=false;});}
+    update(){
+        const v=180*this.gameState.upgrades.speed;
+        if(keys.left)this.player.setVelocityX(-v);else if(keys.right)this.player.setVelocityX(v);else this.player.setVelocityX(0);
+        if(keys.up)this.player.setVelocityY(-v);else if(keys.down)this.player.setVelocityY(v);else this.player.setVelocityY(0);
+        
+        // Draw bars
+        this.hpBar.clear();this.hpBar.fillStyle(0xff0044,1);this.hpBar.fillRect(10,10,this.gameState.player.hp*2,15);
+        this.energyBar.clear();this.energyBar.fillStyle(0x00fff5,1);this.energyBar.fillRect(10,30,this.gameState.player.energy*2,15);
+        
+        this.creditsText.setText('CREDITS: '+this.gameState.player.credits);
+        this.levelText.setText('LEVEL: '+this.gameState.player.level);
+        
+        if(keys.z&&this.dialogueOpen){keys.z=0;this.dialogueBox.setVisible(false);this.dialogueText.setVisible(false);this.dialogueOpen=false;}
+    }
+}
+
+class UpgradeShop extends Phaser.Scene {
+    constructor() { super({key:'UpgradeShop'}); }
+    init(data){this.gameState=data;}
+    create(){
+        this.add.image(400,300,'title_bg');
+        this.add.rectangle(400,300,800,600,0x000,0.8);
+        
+        this.add.text(400,80,'MEJORAS CYBER',{fontSize:'28px',color:'#00fff5'}).setOrigin(0.5);
+        
+        this.add.text(200,180,'1. VELOCIDAD (50 cred)',{fontSize:'20px',color:'#00ff00'}).setOrigin(0.5);
+        this.add.text(200,220,'2. DAÑO (75 cred)',{fontSize:'20px',color:'#ff00ff'}).setOrigin(0.5);
+        this.add.text(200,260,'3. ESCUDO (100 cred)',{fontSize:'20px',color:'#ffff00'}).setOrigin(0.5);
+        this.add.text(200,300,'4. SALIR',{fontSize:'20px',color:'#ff0000'}).setOrigin(0.5);
+        
+        this.add.text(400,400,'Tus creditos: '+this.gameState.player.credits,{fontSize:'22px',color:'#00fff5'}).setOrigin(0.5);
+        
+        this.opt=0;
+        this.input.keyboard.on('keydown-1',()=>this.buy(0,50,'speed'));
+        this.input.keyboard.on('keydown-2',()=>this.buy(1,75,'damage'));
+        this.input.keyboard.on('keydown-3',()=>this.buy(2,100,'shield'));
+        this.input.keyboard.on('keydown-4',()=>this.scene.start('TitleScene',this.gameState));
+    }
+    buy(idx,cost,type){
+        if(this.gameState.player.credits>=cost){
+            this.gameState.player.credits-=cost;
+            if(type==='speed')this.gameState.upgrades.speed+=0.2;
+            if(type==='damage')this.gameState.upgrades.damage+=0.2;
+            if(type==='shield')this.gameState.upgrades.shield+=1;
+            this.add.text(400,500,'COMPRADO!',{fontSize:'28px',color:'#00ff00'}).setOrigin(0.5);
+        }else{
+            this.add.text(400,500,'CREDITOS INSUFICIENTES',{fontSize:'24px',color:'#ff0000'}).setOrigin(0.5);
+        }
+    }
+    update(){if(keys.z){keys.z=0;this.scene.start('TitleScene',this.gameState);}}
+}
+
+class ArcadeLobby extends Phaser.Scene {
+    constructor() { super({key:'ArcadeLobby'}); }
+    init(data){this.gameState=data;}
+    create(){
+        this.add.image(400,300,'arcade_bg');
+        for(let i=0;i<20;i++){let l=this.add.rectangle(400,i*30,800,2,0xff00ff,0.1);this.tweens.add({targets:l,alpha:0,repeat:-1,yoyo:true,duration:300});}
+        this.add.text(400,80,'NET ARCADE',{fontSize:'32px',color:'#ff00ff'}).setOrigin(0.5);
+        
+        const games=[{id:'fight',name:'CYBER FIGHT',x:250},{id:'puzzle',name:'DATA PUZZLE',x:400},{id:'race',name:'NEON RACE',x:550}];
+        games.forEach(g=>{let r=this.add.rectangle(g.x,300,100,100,0x00ffff).setStrokeStyle(3,0xff00ff).setInteractive();r.on('pointerdown',()=>this.play(g.id));});
+        
+        this.creditsText=this.add.text(400,500,'CREDITS: '+this.gameState.player.credits,{fontSize:'24px',color:'#00fff5'}).setOrigin(0.5);
+    }
+    play(id){if(id==='fight')this.scene.start('FightingGame',this.gameState);}
+    update(){this.creditsText.setText('CREDITS: '+this.gameState.player.credits);if(keys.z){keys.z=0;this.scene.start('WorldScene',this.gameState);}}
+}
+
+class FightingGame extends Phaser.Scene {
+    constructor() { super({key:'FightingGame'}); }
+    init(data){this.gameState=data;}
+    create(){
+        this.add.image(400,300,'arcade_bg');
+        this.p1Hp=100;this.p2Hp=100;
+        this.player1=this.physics.add.sprite(200,400,'player',0);
+        this.player2=this.physics.add.sprite(600,400,'fighter2');
+        
+        this.p1HpBar=this.add.graphics();this.p2HpBar=this.add.graphics();
+        this.add.text(50,30,'PLAYER',{fontSize:'16px',color:'#00ff00'});
+        this.add.text(550,30,'CPU',{fontSize:'16px',color:'#ff0000'});
+        
+        this.turn=true;this.timer=0;
+        this.battleText=this.add.text(400,500,'READY?',{fontSize:'32px',color:'#ffff00'}).setOrigin(0.5);
+    }
+    update(){
+        this.p1HpBar.clear();this.p1HpBar.fillStyle(0x00ff00,1);this.p1HpBar.fillRect(20,20,this.p1Hp*3,20);
+        this.p2HpBar.clear();this.p2HpBar.fillStyle(0xff0000,1);this.p2HpBar.fillRect(400,20,this.p2Hp*3,20);
+        
+        if(this.turn){if(keys.z){keys.z=0;this.p2Hp-=15*this.gameState.upgrades.damage;this.battleText.setText('ATTACK! -'+(15*this.gameState.upgrades.damage)+' HP');this.cameras.main.shake(100,0.01);this.turn=false;}}
+        else{this.timer++;if(this.timer>60){this.p1Hp-=Phaser.Math.Between(5,15);this.battleText.setText('ENEMY ATTACK!');this.cameras.main.shake(100,0.015);this.timer=0;this.turn=true;}}
+        
+        if(this.p2Hp<=0){this.gameState.player.credits+=100;this.battleText.setText('WIN! +100 CREDITS');this.time.delayedCall(2000,()=>this.scene.start('ArcadeLobby',this.gameState));}
+        if(this.p1Hp<=0){this.battleText.setText('GAME OVER');this.time.delayedCall(2000,()=>this.scene.start('ArcadeLobby',this.gameState));}
+    }
+}
+
+class CreditsScene extends Phaser.Scene {
+    constructor() { super({key:'CreditsScene'}); }
+    create(){
+        this.add.rectangle(400,300,800,600,0x0a0a12);
+        this.add.text(400,100,'CREDITOS',{fontSize:'32px',color:'#00fff5'}).setOrigin(0.5);
+        this.add.text(400,250,'MOD: CYBERPUNK',{fontSize:'28px',color:'#ff00ff'}).setOrigin(0.5);
+        this.add.text(400,320,'Sistema de energia agregado',{fontSize:'18px',color:'#00ffff'}).setOrigin(0.5);
+        this.add.text(400,360,'Tienda de mejoras',{fontSize:'18px',color:'#ffff00'}).setOrigin(0.5);
+        this.add.text(400,500,'Presiona Z',{fontSize:'16px',color:'#666'}).setOrigin(0.5);
+    }
+    update(){if(keys.z){keys.z=0;this.scene.start('TitleScene');}}
+}
+
+const config={type:Phaser.AUTO,width:800,height:600,parent:'game-container',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},physics:{default:'arcade',arcade:{gravity:{y:0},debug:false}},scene:[BootScene,TitleScene,WorldScene,UpgradeShop,ArcadeLobby,FightingGame,CreditsScene]};
+new Phaser.Game(config);
+</script>
+</body>
+</html>

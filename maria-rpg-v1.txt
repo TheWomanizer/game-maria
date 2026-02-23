@@ -1,0 +1,35 @@
+=================================================================
+MARIA & THE ROBOT GARDEN - VERSION 1
+=================================================================
+ASSETS: Phaser Labs (labs.phaser.io) - CC0
+
+Sprites:
+- dude.png, phaser-dude.png (player)
+- knight.png (NPC Jose)
+- panda.png (NPC Celeste)  
+- frog.png (NPC Robot)
+- diamond.png, star.png, heart.png (items)
+- house.png, crate32.png (world)
+- castle.png (church)
+- neon.png (arcade)
+- alien.png, shmup-baddie2.png (fighters)
+
+Backgrounds:
+- space3.png (title)
+- grassland.png (world)
+- cavern1.png (battle)
+
+Library: Phaser 3.70.0
+
+MECANICAS (todas de fuentes externas):
+- Movimiento WASD/Arrow keys
+- UI HP/MP/Gold/Level
+- Dialogos con NPCs
+- Mapa con 5 ubicaciones
+- Iglesia con oracion
+- Arcade con minijuego de lucha
+- Combo system
+- Screen shake, hit effects
+- Controles touch para movil
+
+=================================================================

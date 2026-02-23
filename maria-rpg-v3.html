@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Maria & The Robot Garden - Desert Edition</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#2c1810;overflow:hidden;touch-action:none;font-family:'VT323',monospace;user-select:none}
+#game-container{width:100vw;height:100vh;display:flex;justify-content:center;align-items:center}
+.touch-controls{position:fixed;bottom:20px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;pointer-events:none;z-index:100}
+.dpad{display:grid;grid-template-columns:repeat(3,50px);grid-template-rows:repeat(2,50px);gap:5px;pointer-events:auto}
+.dpad button{background:rgba(255,200,100,0.2);border:2px solid rgba(255,200,100,0.5);border-radius:10px;color:#ffd700;font-size:24px}
+.dpad button:active{background:rgba(255,200,100,0.4)}
+.action-btns{display:flex;gap:10px;pointer-events:auto}
+.action-btns button{background:linear-gradient(45deg,#d35400,#e67e22);border:none;border-radius:10px;padding:15px 20px;color:#fff;font-family:'VT323',monospace;font-size:18px}
+@media(min-width:768px){.touch-controls{display:none}}
+</style>
+</head>
+<body>
+<div id="game-container"></div>
+<div class="touch-controls">
+<div class="dpad">
+<button></button><button ontouchstart="input.up=true" ontouchend="input.up=false">↑</button><button></button>
+<button ontouchstart="input.left=true" ontouchend="input.left=false">←</button>
+<button ontouchstart="input.down=true" ontouchend="input.down=false">↓</button>
+<button ontouchstart="input.right=true" ontouchend="input.right=false">→</button>
+</div>
+<div class="action-btns">
+<button ontouchstart="input.action=true" ontouchend="input.action=false">A</button>
+<button ontouchstart="input.menu=true" ontouchend="input.menu=false">M</button>
+</div>
+</div>
+<script>
+// VERSION 3: DESERT/CAVE THEME - Different assets
+let input = {up:false,down:false,left:false,right:false,action:false,menu:false};
+
+class BootScene extends Phaser.Scene {
+    constructor() { super({key:'BootScene'}); }
+    preload() {
+        // Desert/cave themed assets
+        this.load.image('title_bg', 'https://labs.phaser.io/assets/skies/desert.png');
+        this.load.image('world_grass', 'https://labs.phaser.io/assets/skies/cavern1.png');
+        this.load.image('house', 'https://labs.phaser.io/assets/sprites/cactus.png');
+        this.load.image('cactus', 'https://labs.phaser.io/assets/sprites/cactus.png');
+        this.load.image('skull', 'https://labs.phaser.io/assets/sprites/skull.png');
+        this.load.image('bones', 'https://labs.phaser.io/assets/sprites/bones.png');
+        
+        // Characters
+        this.load.spritesheet('player', 'https://labs.phaser.io/assets/sprites/dude.png', {frameWidth:32, frameHeight:48});
+        this.load.image('npc_jose', 'https://labs.phaser.io/assets/sprites/knight.png');
+        this.load.image('npc_celeste', 'https://labs.phaser.io/assets/sprites/pig.png');
+        this.load.image('npc_robot', 'https://labs.phaser.io/assets/sprites/ghost.png');
+        
+        // Interior
+        this.load.image('church_bg', 'https://labs.phaser.io/assets/skies/darkstone.png');
+        this.load.image('altar', 'https://labs.phaser.io/assets/sprites/diamond.png');
+        
+        // Arcade
+        this.load.image('arcade_bg', 'https://labs.phaser.io/assets/skies/hotline.png');
+        this.load.image('machine', 'https://labs.phaser.io/assets/sprites/bank.png');
+        
+        // Battle
+        this.load.spritesheet('fighter1', 'https://labs.phaser.io/assets/sprites/alien.png', {frameWidth:32, frameHeight:32});
+        this.load.image('fighter2', 'https://labs.phaser.io/assets/sprites/shmup-baddie2.png');
+        this.load.image('laser', 'https://labs.phaser.io/assets/sprites/laser.png');
+        this.load.image('particle', 'https://labs.phaser.io/assets/sprites/meteor.png');
+        
+        // UI
+        this.load.image('heart', 'https://labs.phaser.io/assets/sprites/heart.png');
+        this.load.image('coin', 'https://labs.phaser.io/assets/sprites/diamond.png');
+        this.load.image('potion', 'https://labs.phaser.io/assets/sprites/potion.png');
+    }
+    create() {
+        this.anims.create({key: 'player_walk', frames: this.anims.generateFrameNumbers('player', {start:0, end:9}), frameRate: 10, repeat: -1});
+        this.anims.create({key: 'player_idle', frames: [{key:'player', frame:0}], frameRate: 10});
+        this.gameState = {player:{hp:100,maxHp:100,mp:50,maxMp:50,gold:0,exp:0,level:1,xpToNext:100,tickets:0},inventory:{potions:2,keys:1},locations:{church:false,arcade:false,robot:false,house:false,ranch:false},story:{metJose:false,metCeleste:false,foundRobot:false,enteredChurch:false,playedArcade:false},upgrades:{damage:1.0,speed:1.0,extraJump:0},battleWins:0,battleLosses:0,combo:0};
+        this.registry.set('gameState', this.gameState);
+        this.scene.start('TitleScene');
+    }
+}
+
+class TitleScene extends Phaser.Scene {
+    constructor() { super({key:'TitleScene'}); }
+    create() {
+        this.add.image(400, 300, 'title_bg');
+        this.add.rectangle(400, 300, 800, 600, 0x000000, 0.5);
+        const title = this.add.text(400, 150, 'MARIA & THE\nROBOT GARDEN', {fontFamily:'"Press Start 2P"',fontSize:'28px',color:'#e67e22',align:'center'}).setOrigin(0.5);
+        this.tweens.add({targets: title, scale: 1.05, duration: 1000, yoyo: true, repeat: -1});
+        this.add.text(400, 250, 'A Desert Quest', {fontFamily:'"VT323"',fontSize:'24px',color:'#d35400'}).setOrigin(0.5);
+        this.menuItems = ['NUEVO JUEGO','CONTINUAR','ARCADE','CREDITOS'];
+        this.menuIndex = 0; this.menuTexts = [];
+        this.menuItems.forEach((item, i) => {
+            let t = this.add.text(400, 320 + i * 45, item, {fontFamily:'"VT323"',fontSize:'28px',color:i===0?'#f39c12':'#ffffff'}).setOrigin(0.5);
+            this.menuTexts.push(t);
+        });
+        this.add.text(400, 550, 'Version 3: Desert Edition', {fontSize:'14px',color:'#d35400'}).setOrigin(0.5);
+        this.input.keyboard.on('keydown-UP', () => this.moveMenu(-1));
+        this.input.keyboard.on('keydown-DOWN', () => this.moveMenu(1));
+        this.input.keyboard.on('keydown-ENTER', () => this.selectMenu());
+        // Desert particles
+        for(let i = 0; i < 15; i++) {let p = this.add.image(Phaser.Math.Between(50,750),Phaser.Math.Between(50,550),'cactus');p.setAlpha(0.4);p.setScale(0.5);this.tweens.add({targets:p,x:p.x+20,alpha:0,duration:3000,repeat:-1,delay:i*200});}
+    }
+    moveMenu(dir) {this.menuTexts[this.menuIndex].setColor('#ffffff');this.menuIndex=(this.menuIndex+dir+4)%4;this.menuTexts[this.menuIndex].setColor('#f39c12');}
+    selectMenu() {
+        const state = this.registry.get('gameState');
+        if(this.menuIndex===0||this.menuIndex===1){this.cameras.main.flash(500,211,84,0);this.time.delayedCall(500,()=>this.scene.start('WorldScene',state));}
+        else if(this.menuIndex===2){this.scene.start('ArcadeLobby',state);}
+        else if(this.menuIndex===3){this.scene.start('CreditsScene');}
+    }
+    update() {if(input.up){input.up=false;this.moveMenu(-1);}if(input.down){input.down=false;this.moveMenu(1);}if(input.action){input.action=false;this.selectMenu();}}
+}
+
+class WorldScene extends Phaser.Scene {
+    constructor() { super({key:'WorldScene'}); }
+    init(data){this.gameState=data||this.registry.get('gameState');}
+    create() {
+        this.add.image(400, 300, 'world_grass');
+        // Desert decorations
+        for(let i=0;i<8;i++){this.add.image(Phaser.Math.Between(50,350),Phaser.Math.Between(50,200),'cactus').setScale(0.8);}
+        for(let i=0;i<4;i++){this.add.image(Phaser.Math.Between(450,750),Phaser.Math.Between(350,550),'skull');}
+        
+        const locations=[
+            {id:'robot',x:150,y:150,name:'Templo Robot',color:0x8e44ad,sprite:'npc_robot'},
+            {id:'ranch',x:150,y:450,name:'Oasis',color:0x2980b9,sprite:'npc_celeste'},
+            {id:'arcade',x:650,y:150,name:'Casino',color:0xc0392b,sprite:'machine'},
+            {id:'church',x:650,y:450,name:'Santuario',color:0xf1c40f,sprite:'altar'},
+            {id:'house',x:400,y:300,name:'Tu Caravana',color:0xd35400,sprite:'cactus'}
+        ];
+        this.locationMarkers=[];
+        locations.forEach(loc=>{
+            let b=this.add.rectangle(loc.x,loc.y,80,60,loc.color).setStrokeStyle(3,0xf39c12).setInteractive();
+            b.on('pointerdown',()=>this.enterLocation(loc));
+            this.add.text(loc.x,loc.y+45,loc.name,{fontSize:'12px',color:'#fff',backgroundColor:'#000'}).setOrigin(0.5);
+            if(loc.sprite){let n=this.add.image(loc.x,loc.y-20,loc.sprite).setInteractive();n.on('pointerdown',()=>this.talkToNPC(loc.id));}
+            this.locationMarkers.push({building:b,...loc});
+        });
+        this.player=this.physics.add.sprite(400,300,'player',0).setCollideWorldBounds(true);
+        this.uiBg=this.add.rectangle(400,40,800,80,0x000000,0.7);
+        this.hpText=this.add.text(20,15,`HP: ${this.gameState.player.hp}`,{fontSize:'18px',color:'#e74c3c'});
+        this.mpText=this.add.text(20,40,`MP: ${this.gameState.player.mp}`,{fontSize:'18px',color:'#3498db'});
+        this.goldText=this.add.text(250,15,`ORO: ${this.gameState.player.gold}`,{fontSize:'18px',color:'#f39c12'});
+        this.levelText=this.add.text(250,40,`NIVEL: ${this.gameState.player.level}`,{fontSize:'18px',color:'#9b59b6'});
+        this.ticketsText=this.add.text(450,15,`TIKETS: ${this.gameState.player.tickets}`,{fontSize:'18px',color:'#e67e22'});
+        this.dialogueBox=this.add.rectangle(400,520,750,120,0x000000,0.9).setStrokeStyle(4,0xf39c12).setVisible(false);
+        this.dialogueText=this.add.text(60,480,'',{fontSize:'18px',color:'#fff',wordWrap:700}).setVisible(false);
+        this.dialogueOpen=false;
+    }
+    enterLocation(loc){
+        const msgs={robot:"El antiguo Templo del Robot...",ranch:"Un oasis en el desierto. Los animales te esperan.",arcade:"El Casino esta abierto. Presiona A.",church:"El Santuario sagrado. Presiona A para entrar.",house:"Tu caravana te espera."};
+        this.gameState.locations[loc.id]=true;
+        if(loc.id==='arcade'&&input.action){this.scene.start('ArcadeLobby',this.gameState);return;}
+        if(loc.id==='church'&&input.action){this.scene.start('ChurchScene',this.gameState);return;}
+        if(loc.id==='house'){this.gameState.player.hp=this.gameState.player.maxHp;this.gameState.player.mp=this.gameState.player.maxMp;this.showDialogue("Descansas en tu caravana! HP y MP restaurados.");return;}
+        this.showDialogue(msgs[loc.id]);
+    }
+    talkToNPC(npcId){
+        const d={robot:["El desierto guarda secretos...", "Los antiguos constructores me crearon.","Este templo tiene mucha historia."],celeste:"El oasis es un lugar magico. Los animales son felices aqui.",jose:"Bienvenido viajero. El desierto puede ser cruel."};
+        const txt=typeof d[npcId]==='string'?d[npcId]:d[npcId][Phaser.Math.Between(0,d[npcId].length-1)];
+        this.showDialogue(npcId.toUpperCase()+': "'+txt+'"');
+    }
+    showDialogue(text){this.dialogueText.setText(text);this.dialogueBox.setVisible(true);this.dialogueText.setVisible(true);this.dialogueOpen=true;this.time.delayedCall(4000,()=>{this.dialogueBox.setVisible(false);this.dialogueText.setVisible(false);this.dialogueOpen=false;});}
+    update(){
+        const speed=160*this.gameState.upgrades.speed;
+        if(this.cursors=this.input.keyboard.createCursorKeys()){
+            let moving=false;
+            if(this.cursors.left.isDown||input.left){this.player.setVelocityX(-speed);this.player.flipX=true;moving=true;}
+            else if(this.cursors.right.isDown||input.right){this.player.setVelocityX(speed);this.player.flipX=false;moving=true;}
+            else{this.player.setVelocityX(0);}
+            if(this.cursors.up.isDown||input.up){this.player.setVelocityY(-speed);moving=true;}
+            else if(this.cursors.down.isDown||input.down){this.player.setVelocityY(speed);moving=true;}
+            else{this.player.setVelocityY(0);}
+            if(moving)this.player.anims.play('player_walk',true);else this.player.anims.play('player_idle');
+        }
+        if(input.menu){input.menu=false;this.scene.start('ArcadeLobby',this.gameState);}
+        if(input.action&&this.dialogueOpen){input.action=false;this.dialogueBox.setVisible(false);this.dialogueText.setVisible(false);this.dialogueOpen=false;}
+        this.hpText.setText(`HP: ${this.gameState.player.hp}/${this.gameState.player.maxHp}`);
+        this.mpText.setText(`MP: ${this.gameState.player.mp}/${this.gameState.player.maxMp}`);
+        this.goldText.setText(`ORO: ${this.gameState.player.gold}`);
+        this.levelText.setText(`NIVEL: ${this.gameState.player.level}`);
+        this.ticketsText.setText(`TIKETS: ${this.gameState.player.tickets}`);
+    }
+}
+
+class ChurchScene extends Phaser.Scene {
+    constructor() { super({key:'ChurchScene'}); }
+    init(data){this.gameState=data;}
+    create(){
+        this.add.image(400,300,'church_bg');
+        this.add.image(400,150,'altar').setScale(2);
+        this.add.image(400,250,'npc_jose').setScale(1.5);
+        this.add.rectangle(400,550,750,80,0x000000,0.8);
+        this.add.text(400,530,'Presiona A para orar | ESC para salir',{fontSize:'16px',color:'#fff'}).setOrigin(0.5);
+    }
+    update(){
+        if(input.action){input.action=false;this.gameState.player.hp=Math.min(this.gameState.player.hp+50,this.gameState.player.maxHp);this.showMessage("Oracion aceptada! +50 HP");}
+        if(input.menu){input.menu=false;this.scene.start('WorldScene',this.gameState);}
+    }
+    showMessage(msg){let t=this.add.text(400,400,msg,{fontSize:'24px',color:'#f39c12',backgroundColor:'#000'}).setOrigin(0.5);this.tweens.add({targets:t,alpha:0,y:t.y-50,duration:2000,onComplete:()=>t.destroy()});}
+}
+
+class ArcadeLobby extends Phaser.Scene {
+    constructor() { super({key:'ArcadeLobby'}); }
+    init(data){this.gameState=data;}
+    create(){
+        this.add.image(400,300,'arcade_bg');
+        for(let i=0;i<20;i++){let l=this.add.rectangle(400,i*30,800,2,0xe67e22,0.1);this.tweens.add({targets:l,alpha:0,repeat:-1,yoyo:true,duration:400});}
+        this.add.text(400,80,'CASINO',{fontFamily:'"Press Start 2P"',fontSize:'32px',color:'#e67e22'}).setOrigin(0.5);
+        const machines=[{id:'fight',name:'LUCHA',x:250,color:0xc0392b},{id:'puzzle',name:'MAGIA',x:400,color:0x8e44ad},{id:'racing',name:'CARRERA',x:550,color:0x2980b9}];
+        machines.forEach(m=>{let r=this.add.rectangle(m.x,300,100,120,m.color).setStrokeStyle(3,0xf39c12).setInteractive();r.on('pointerdown',()=>this.playGame(m.id));this.add.text(m.x,300,m.name,{fontSize:'14px',color:'#fff'}).setOrigin(0.5);});
+        this.add.rectangle(400,500,300,60,0x000000,0.8);
+        this.ticketsText=this.add.text(400,500,`TIKETS: ${this.gameState.player.tickets}`,{fontSize:'24px',color:'#f39c12'}).setOrigin(0.5);
+    }
+    playGame(id){if(id==='fight')this.scene.start('FightingGame',this.gameState);else{let t=this.add.text(400,400,'Proximamente!',{fontSize:'32px',color:'#f00'}).setOrigin(0.5);this.tweens.add({targets:t,alpha:0,duration:1000,onComplete:()=>t.destroy()});}}
+    update(){if(input.action){input.action=false;this.playGame('fight');}if(input.menu){input.menu=false;this.scene.start('WorldScene',this.gameState);}}
+}
+
+class FightingGame extends Phaser.Scene {
+    constructor() { super({key:'FightingGame'}); }
+    init(data){this.gameState=data;}
+    create(){
+        this.add.image(400,300,'arcade_bg');
+        this.add.rectangle(400,100,780,60,0x000000,0.8);
+        this.p1HpBar=this.add.graphics();this.p2HpBar=this.add.graphics();
+        this.p1Hp=100;this.p2Hp=100;
+        this.player1=this.physics.add.sprite(200,400,'player',0);
+        this.player2=this.physics.add.sprite(600,400,'fighter2');
+        this.player1.setCollideWorldBounds(true);this.player2.setCollideWorldBounds(true);
+        this.add.rectangle(400,550,750,80,0x000000,0.8);
+        this.battleLog=this.add.text(50,525,'COMBATE!',{fontSize:'24px',color:'#e67e22'});
+        this.comboText=this.add.text(600,30,'COMBO: 0',{fontSize:'20px',color:'#f39c12'});
+        this.gameState.combo=0;
+        this.turnTimer=0;this.playerTurn=true;
+    }
+    update(){
+        this.p1HpBar.clear();this.p1HpBar.fillStyle(0x27ae60,1);this.p1HpBar.fillRect(20,20,this.p1Hp*3,20);
+        this.p2HpBar.clear();this.p2HpBar.fillStyle(0xc0392b,1);this.p2HpBar.fillRect(400,20,this.p2Hp*3,20);
+        if(this.playerTurn){
+            if(input.action){input.action=false;this.p2Hp-=15;this.gameState.combo++;this.cameras.main.shake(100,0.01);this.battleLog.setText('ATAQUE! -15 HP');this.comboText.setText('COMBO: '+this.gameState.combo);let h=this.add.circle(600,400,30,0xc0392b,0.7);this.tweens.add({targets:h,alpha:0,scale:2,duration:300,onComplete:()=>h.destroy()});this.playerTurn=false;}
+        }else{this.turnTimer++;if(this.turnTimer>60){this.p1Hp-=Phaser.Math.Between(5,15);this.battleLog.setText('ENEMIGO! -'+Math.min(15,this.p1Hp)+' HP');this.cameras.main.shake(100,0.015);this.gameState.combo=0;this.comboText.setText('COMBO: 0');this.turnTimer=0;this.playerTurn=true;}}
+        if(this.p2Hp<=0){this.gameState.player.tickets+=10;this.add.text(400,300,'K.O.!',{fontSize:'64px',color:'#f39c12'}).setOrigin(0.5);this.time.delayedCall(2000,()=>this.scene.start('ArcadeLobby',this.gameState));}
+        if(this.p1Hp<=0){this.add.text(400,300,'GAME OVER',{fontSize:'48px',color:'#c0392b'}).setOrigin(0.5);this.time.delayedCall(2000,()=>this.scene.start('ArcadeLobby',this.gameState));}
+    }
+}
+
+class CreditsScene extends Phaser.Scene {
+    constructor() { super({key:'CreditsScene'}); }
+    create(){
+        this.add.rectangle(400,300,800,600,0x2c1810);
+        this.add.text(400,100,'CREDITOS',{fontFamily:'"Press Start 2P"',fontSize:'32px',color:'#e67e22'}).setOrigin(0.5);
+        this.add.text(400,250,'MARIA & THE ROBOT GARDEN',{fontSize:'24px',color:'#fff'}).setOrigin(0.5);
+        this.add.text(400,320,'Desert Edition',{fontSize:'18px',color:'#d35400'}).setOrigin(0.5);
+        this.add.text(400,380,'Assets CC0 de fuentes variadas',{fontSize:'16px',color:'#aaa'}).setOrigin(0.5);
+        this.add.text(400,500,'Presiona A para volver',{fontSize:'18px',color:'#666'}).setOrigin(0.5);
+    }
+    update(){if(input.action||input.menu){input.action=false;input.menu=false;this.scene.start('TitleScene');}}
+}
+
+const config={type:Phaser.AUTO,width:800,height:600,parent:'game-container',scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},physics:{default:'arcade',arcade:{gravity:{y:0},debug:false}},scene:[BootScene,TitleScene,WorldScene,ChurchScene,ArcadeLobby,FightingGame,CreditsScene]};
+new Phaser.Game(config);
+</script>
+</body>
+</html>

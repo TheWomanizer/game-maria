@@ -1,0 +1,28 @@
+=================================================================
+MARIA & THE ROBOT GARDEN - MOD 1: CYBERPUNK
+=================================================================
+ASSETS: Phaser Labs + MOD PROPIO
+
+Sprites:
+- cyborg.png, mech.png, probe.png (NPCs)
+- bank.png, crate32.png (edificios)
+- laser.png (combate)
+
+MODIFICACIONES PROPIAS (no son de fuentes externas):
+1. Sistema de ENERGIA (Energy bar) - implementado en codigo
+2. Creditos en vez de oro
+3. Tienda de MEJORAS (upgrade shop)
+   - +Velocidad
+   - +Daño
+   - +Escudo
+4. Efecto scanline CRT
+5. Colores cyan/magenta
+
+MECANICAS NUEVAS AGREGADAS:
+- Compra de upgrades con creditos
+- Energia se consume al atacar
+- Recarga de energia en casa
+
+CONTROLES: WASD + Z
+
+=================================================================

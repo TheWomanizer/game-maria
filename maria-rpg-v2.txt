@@ -1,0 +1,25 @@
+=================================================================
+MARIA & THE ROBOT GARDEN - VERSION 2 (Forest/Kenney Style)
+=================================================================
+ASSETS: Phaser Labs + Estilo bosque
+
+Sprites diferentes de V1:
+- tree.png, palm.png (decoraciones bosque)
+- boulder.png (rocas)
+- wizard.png (NPC Jose)
+- pig.png (NPC Celeste)
+- ghost.png (NPC Robot)
+- dungeon.png (iglesia)
+- tox.png (arcade)
+- meteor.png (particulas)
+- flask.png (potions)
+
+Backgrounds:
+- forest.png (titulo)
+- grassland.png (mundo)
+- dungeon.png (iglesia)
+
+MISMAS MECANICAS QUE V1 (código reutilizado)
+Solo cambian assets y colores (verde/tema bosque)
+
+=================================================================
